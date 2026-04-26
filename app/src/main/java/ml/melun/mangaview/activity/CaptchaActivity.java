@@ -74,6 +74,14 @@ public class CaptchaActivity extends AppCompatActivity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
+        settings.setJavaScriptCanOpenWindowsAutomatically(true);
+        settings.setLoadsImagesAutomatically(true);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setUserAgentString(httpClient.agent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        }
 
         CookieManager cookiem = CookieManager.getInstance();
         cookiem.setAcceptCookie(true);
@@ -237,7 +245,6 @@ public class CaptchaActivity extends AppCompatActivity {
         super.onDestroy();
         ((ConstraintLayout) findViewById(R.id.captchaContainer)).removeAllViews();
         webView.clearHistory();
-        webView.clearCache(true);
         webView.destroy();
     }
 
