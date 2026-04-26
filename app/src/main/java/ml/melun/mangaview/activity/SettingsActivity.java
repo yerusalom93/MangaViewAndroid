@@ -355,6 +355,8 @@ public class SettingsActivity extends AppCompatActivity {
 
         definputtext.setText("기본 URL (숫자 없는 주소):");
         inputtext.setText("URL:");
+        definputtext.setText("Base URL:");
+        inputtext.setText("Current URL:");
 
         switch_layout.addView(toggle_lbl);
         switch_layout.addView(toggle);
@@ -400,12 +402,17 @@ public class SettingsActivity extends AppCompatActivity {
                 .setPositiveButton("설정", (dialog, button) -> {
                     if(toggle.isChecked()){
                         // 자동 설정
+                        String seedUrl;
                         if(definput.getText().length()>0)
-                            p.setDefUrl(definput.getText().toString());
+                            seedUrl = definput.getText().toString();
+                        else if(p.getUrl() != null && p.getUrl().length() > 0)
+                            seedUrl = p.getUrl();
                         else
-                            p.setDefUrl(definput.getHint().toString());
+                            seedUrl = definput.getHint().toString();
+                        p.setDefUrl(seedUrl);
+                        p.setUrl(seedUrl);
                         p.setAutoUrl(true);
-                        new UrlUpdater(context).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                        new UrlUpdater(context, false, null, seedUrl).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                     }else {
                         // 수동 설정
                         p.setAutoUrl(false);

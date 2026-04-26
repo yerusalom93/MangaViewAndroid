@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
+import ml.melun.mangaview.UrlUpdater;
 import ml.melun.mangaview.ui.NpaLinearLayoutManager;
 import ml.melun.mangaview.R;
 import ml.melun.mangaview.mangaview.MainPageWebtoon;
@@ -206,7 +207,8 @@ public class MainWebtoonAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             for (Ranking<?> r : dataSet) {
                 if (r==null || r.size() == 0) {
                     // captcha?
-                    listener.captchaCallback();
+                    if(!UrlUpdater.running)
+                        listener.captchaCallback();
                     return;
                 }
             }

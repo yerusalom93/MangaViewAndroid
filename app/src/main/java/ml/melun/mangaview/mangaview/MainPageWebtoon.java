@@ -41,6 +41,8 @@ public class MainPageWebtoon {
                 return;
         try {
             Response r = client.get(baseUrl, null);
+            if(r == null || r.body() == null)
+                return;
             String body = r.body().string();
             if(body.contains("Connect Error: Connection timed out")){
                 //adblock : try again

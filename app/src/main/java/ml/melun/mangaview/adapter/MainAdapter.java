@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ml.melun.mangaview.UrlUpdater;
 import ml.melun.mangaview.ui.NpaLinearLayoutManager;
 import ml.melun.mangaview.R;
 import ml.melun.mangaview.mangaview.Login;
@@ -404,7 +405,9 @@ public class MainAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             //update adapters?
             if(u.getRecent().size() == 0){
                 // captcha?
-                mainClickListener.captchaCallback();
+                if(!UrlUpdater.running)
+                    mainClickListener.captchaCallback();
+                return;
             }
             uadapter.setData(u.getRecent());
 
@@ -473,5 +476,4 @@ public class MainAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
 }
-
 

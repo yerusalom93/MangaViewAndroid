@@ -33,6 +33,8 @@ public class MainPage {
 
         try{
             Response r = client.mget("",true,null);
+            if(r == null || r.body() == null)
+                return;
             String body = r.body().string();
             if(body.contains("Connect Error: Connection timed out")){
                 //adblock : try again
@@ -42,6 +44,10 @@ public class MainPage {
             }
             Document d = Jsoup.parse(body);
             r.close();
+            Elements galleries = d.select("div.miso-post-gallery");
+            Elements postLists = d.select("div.miso-post-list");
+            if(galleries.size() == 0 || postLists.size() == 0)
+                return;
 
             //recent
             int id;
@@ -51,7 +57,7 @@ public class MainPage {
             Element infos;
             Title ttmp;
 
-            for(Element e : d.selectFirst("div.miso-post-gallery").select("div.post-row")){
+            for(Element e : galleries.first().select("div.post-row")){
                 id = Integer.parseInt(e.selectFirst("a").attr("href").split("comic/")[1]);
                 infos = e.selectFirst("div.img-item");
                 thumb = infos.selectFirst("img").attr("src");
@@ -63,7 +69,7 @@ public class MainPage {
             }
 
             int i=1;
-            for(Element e : d.select("div.miso-post-gallery").last().select("div.post-row")){
+            for(Element e : galleries.last().select("div.post-row")){
                 id = Integer.parseInt(e.selectFirst("a").attr("href").split("comic/")[1]);
                 infos = e.selectFirst("div.img-item");
                 thumb = infos.selectFirst("img").attr("src");
@@ -73,7 +79,7 @@ public class MainPage {
             }
 
             i=1;
-            for(Element e : d.select("div.miso-post-list").last().select("li.post-row")){
+            for(Element e : postLists.last().select("li.post-row")){
                 infos = e.selectFirst("a");
                 id = Integer.parseInt(infos.attr("href").split("comic/")[1]);
                 name = infos.ownText();

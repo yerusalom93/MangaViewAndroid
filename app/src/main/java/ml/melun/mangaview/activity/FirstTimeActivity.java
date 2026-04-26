@@ -42,6 +42,7 @@ public class FirstTimeActivity extends AppCompatActivity {
         this.overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
         setContentView(R.layout.activity_first_time);
         input = this.findViewById(R.id.first_def_url);
+        input.setHint("https://manatoki469.net");
 
 
         pd = new ProgressDialog(context, R.style.darkDialog);
@@ -52,6 +53,9 @@ public class FirstTimeActivity extends AppCompatActivity {
         this.findViewById(R.id.eulaAgreeBtn).setOnClickListener(view -> {
             pd.show();
             String defurl = input.getText().toString();
+            if(defurl.length() == 0)
+                defurl = input.getHint().toString();
+            final String finalDefurl = defurl;
             if(defurl.length() == 0){
                 urlError("기본주소를 입력해 주세요.");
             }else if(containsDigit(defurl)) {
@@ -64,7 +68,7 @@ public class FirstTimeActivity extends AppCompatActivity {
                     if(pd.isShowing())
                         pd.dismiss();
                     if(success){
-                        p.setDefUrl(defurl);
+                        p.setDefUrl(finalDefurl);
                         p.setAutoUrl(true);
                         long time = System.currentTimeMillis();
                         p.getSharedPref().edit().putLong("eula2", time).apply();
@@ -76,7 +80,7 @@ public class FirstTimeActivity extends AppCompatActivity {
                     }else{
                         urlError("주소 업데이트에 실패했습니다.");
                     }
-                }, defurl).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                }, finalDefurl).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             }
         });
 
@@ -95,11 +99,6 @@ public class FirstTimeActivity extends AppCompatActivity {
     }
 
     public boolean containsDigit(String s){
-        for(char c : s.toCharArray()) {
-            if(Character.isDigit(c)) {
-                return true;
-            }
-        }
         return false;
     }
 

@@ -433,9 +433,13 @@ public class Utils {
     }
 
     public static GlideUrl getGlideUrl(String image){
-        GlideUrl url = new GlideUrl(image, new LazyHeaders.Builder()
+        LazyHeaders.Builder headers = new LazyHeaders.Builder()
                 .addHeader("Referer", p.getUrl())
-                .build());
+                .addHeader("User-Agent", httpClient.agent);
+        String cookie = httpClient.getCookieHeader();
+        if(cookie.length() > 0)
+            headers.addHeader("Cookie", cookie);
+        GlideUrl url = new GlideUrl(image, headers.build());
         return url;
     }
 

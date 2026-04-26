@@ -66,8 +66,35 @@ public class CustomHttpClient {
     public void setCookie(String k, String v){
         cookies.put(k, v);
     }
+    public void removeCookie(String k){
+        cookies.remove(k);
+    }
     public void resetCookie(){
         this.cookies = new HashMap<>();
+    }
+
+    public String getCookieHeader(){
+        StringBuilder cbuilder = new StringBuilder();
+        for(String key : cookies.keySet()){
+            cbuilder.append(key);
+            cbuilder.append('=');
+            cbuilder.append(cookies.get(key));
+            cbuilder.append("; ");
+        }
+        if(cbuilder.length()>2)
+            cbuilder.delete(cbuilder.length()-2,cbuilder.length());
+        return cbuilder.toString();
+    }
+
+    public void setCookies(String cookieStr){
+        if(cookieStr == null || cookieStr.length() == 0)
+            return;
+        for (String s : cookieStr.split("; ")) {
+            int split = s.indexOf("=");
+            if(split <= 0)
+                continue;
+            setCookie(s.substring(0, split), s.substring(split + 1));
+        }
     }
 
 
@@ -109,6 +136,17 @@ public class CustomHttpClient {
         return p.getUrl();
     }
 
+    private String buildUrl(String path){
+        String base = p.getUrl();
+        if(path.startsWith("http://") || path.startsWith("https://"))
+            return path;
+        if(base.endsWith("/") && path.startsWith("/"))
+            return base + path.substring(1);
+        if(!base.endsWith("/") && !path.startsWith("/"))
+            return base + "/" + path;
+        return base + path;
+    }
+
 
     public Response mget(String url, Boolean doLogin, Map<String, String> customCookie){
         if(customCookie==null)
@@ -131,14 +169,12 @@ public class CustomHttpClient {
         if(cbuilder.length()>2)
             cbuilder.delete(cbuilder.length()-2,cbuilder.length());
 
-        System.out.println("ppppcookie: "+cbuilder.toString());
-
         Map<String, String> headers = new HashMap<>();
         headers.put("Cookie", cbuilder.toString());
         headers.put("User-Agent", agent);
         headers.put("Referer",p.getUrl());
 
-        return get(p.getUrl()+url, headers);
+        return get(buildUrl(url), headers);
     }
 
     public Response post(String url, RequestBody body, Map<String,String> headers){
