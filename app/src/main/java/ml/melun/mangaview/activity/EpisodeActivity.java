@@ -45,8 +45,6 @@ import static ml.melun.mangaview.Utils.getOfflineEpisodes;
 import static ml.melun.mangaview.Utils.requestLogin;
 import static ml.melun.mangaview.Utils.showCaptchaPopup;
 import static ml.melun.mangaview.Utils.showTokiCaptchaPopup;
-import static ml.melun.mangaview.Utils.startCaptchaActivity;
-import static ml.melun.mangaview.activity.CaptchaActivity.REQUEST_CAPTCHA;
 import static ml.melun.mangaview.activity.CaptchaActivity.RESULT_CAPTCHA;
 import static ml.melun.mangaview.mangaview.Title.LOAD_CAPTCHA;
 import static ml.melun.mangaview.mangaview.Title.LOAD_WEB_CAPTCHA;
@@ -395,7 +393,7 @@ public class EpisodeActivity extends AppCompatActivity {
                 showTokiCaptchaPopup(context, p);
                 return;
             }else if(res == LOAD_WEB_CAPTCHA){
-                startCaptchaActivity(context, REQUEST_CAPTCHA, null, title.getUrl());
+                showTokiCaptchaPopup(context, p);
                 return;
             }else if(episodes == null || episodes.size()==0){
                 showCaptchaPopup(title.getUrl(), context, p);
