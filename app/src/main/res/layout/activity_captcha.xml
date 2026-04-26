@@ -30,10 +30,19 @@
         android:textAlignment="center"
         android:textColor="#fff"
         android:textSize="20dp"
-        app:layout_constraintBottom_toTopOf="@+id/progressBar"
+        app:layout_constraintBottom_toTopOf="@+id/captchaDoneButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         />
+
+    <Button
+        android:id="@+id/captchaDoneButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="인증 완료"
+        app:layout_constraintBottom_toTopOf="@+id/progressBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <ProgressBar
         android:background="#80000000"

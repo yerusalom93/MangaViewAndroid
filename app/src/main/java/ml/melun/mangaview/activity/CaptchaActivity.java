@@ -20,6 +20,7 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.net.MalformedURLException;
@@ -116,20 +117,8 @@ public class CaptchaActivity extends AppCompatActivity {
 
                 // read cookies and finish
                 try {
-                    String cookieStr = cookiem.getCookie(purl);
-                    if (cookieStr != null && cookieStr.length() > 0) {
-                        for (String s : cookieStr.split("; ")) {
-                            int idx = s.indexOf("=");
-                            if (idx <= 0 || idx >= s.length() - 1) continue;
-                            String k = s.substring(0, idx);
-                            String v = s.substring(idx + 1);
-                            httpClient.setCookie(k, v);
-                        }
-                    }
+                    completeCaptcha(cookiem, purl, context);
                     captchaDone = true;
-                    Intent resultIntent = new Intent();
-                    setResult(RESULT_CAPTCHA, resultIntent);
-                    finish();
                 } catch (Exception e) {
                     Utils.showErrorPopup(context, "인증 도중 오류가 발생했습니다. 네트워크 연결 상태를 확인해주세요.", e, true);
                 }
@@ -137,6 +126,14 @@ public class CaptchaActivity extends AppCompatActivity {
         };
 
         webView.setWebViewClient(client);
+        Button doneBtn = findViewById(R.id.captchaDoneButton);
+        doneBtn.setOnClickListener(v -> {
+            try {
+                completeCaptcha(cookiem, purl, context);
+            } catch (Exception e) {
+                Utils.showErrorPopup(context, "인증 결과 처리 중 오류가 발생했습니다.", e, false);
+            }
+        });
 
 //        webView.setOnTouchListener((view, motionEvent) -> true);
 
@@ -153,6 +150,22 @@ public class CaptchaActivity extends AppCompatActivity {
             infoText.setVisibility(View.VISIBLE);
         }, 3000);
 
+    }
+
+    private void completeCaptcha(CookieManager cookiem, String purl, Context context) {
+        String cookieStr = cookiem.getCookie(purl);
+        if (cookieStr != null && cookieStr.length() > 0) {
+            for (String s : cookieStr.split("; ")) {
+                int idx = s.indexOf("=");
+                if (idx <= 0 || idx >= s.length() - 1) continue;
+                String k = s.substring(0, idx);
+                String v = s.substring(idx + 1);
+                httpClient.setCookie(k, v);
+            }
+        }
+        Intent resultIntent = new Intent();
+        setResult(RESULT_CAPTCHA, resultIntent);
+        finish();
     }
 
     @Override
