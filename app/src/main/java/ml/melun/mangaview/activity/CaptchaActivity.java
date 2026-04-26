@@ -117,7 +117,7 @@ public class CaptchaActivity extends AppCompatActivity {
 
                 // read cookies and finish
                 try {
-                    completeCaptcha(cookiem, purl, context);
+                    completeCaptcha(cookiem, purl, view.getUrl());
                     captchaDone = true;
                 } catch (Exception e) {
                     Utils.showErrorPopup(context, "인증 도중 오류가 발생했습니다. 네트워크 연결 상태를 확인해주세요.", e, true);
@@ -129,7 +129,7 @@ public class CaptchaActivity extends AppCompatActivity {
         Button doneBtn = findViewById(R.id.captchaDoneButton);
         doneBtn.setOnClickListener(v -> {
             try {
-                completeCaptcha(cookiem, purl, context);
+                completeCaptcha(cookiem, purl, webView.getUrl());
             } catch (Exception e) {
                 Utils.showErrorPopup(context, "인증 결과 처리 중 오류가 발생했습니다.", e, false);
             }
@@ -152,20 +152,31 @@ public class CaptchaActivity extends AppCompatActivity {
 
     }
 
-    private void completeCaptcha(CookieManager cookiem, String purl, Context context) {
-        String cookieStr = cookiem.getCookie(purl);
-        if (cookieStr != null && cookieStr.length() > 0) {
-            for (String s : cookieStr.split("; ")) {
-                int idx = s.indexOf("=");
-                if (idx <= 0 || idx >= s.length() - 1) continue;
-                String k = s.substring(0, idx);
-                String v = s.substring(idx + 1);
-                httpClient.setCookie(k, v);
-            }
+    private void completeCaptcha(CookieManager cookiem, String purl, String currentUrl) {
+        cookiem.flush();
+
+        readCookiesToClient(cookiem, purl);
+        if (currentUrl != null && currentUrl.length() > 0) {
+            readCookiesToClient(cookiem, currentUrl);
         }
+
         Intent resultIntent = new Intent();
         setResult(RESULT_CAPTCHA, resultIntent);
         finish();
+    }
+
+    private void readCookiesToClient(CookieManager cookiem, String url) {
+        String cookieStr = cookiem.getCookie(url);
+        if (cookieStr == null || cookieStr.length() == 0) return;
+
+        for (String s : cookieStr.split("; ")) {
+            int idx = s.indexOf("=");
+            if (idx <= 0 || idx >= s.length() - 1) continue;
+            String k = s.substring(0, idx).trim();
+            String v = s.substring(idx + 1).trim();
+            if (k.length() == 0 || v.length() == 0) continue;
+            httpClient.setCookie(k, v);
+        }
     }
 
     @Override
