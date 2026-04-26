@@ -151,9 +151,6 @@ public class TagSearchActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Integer integer) {
             super.onPostExecute(integer);
-            if(integer != 0){
-                showCaptchaPopup(context, p);
-            }
             if(adapter.getItemCount()==0) {
                 adapter.addData(bookmark.getResult());
                 searchResult.setAdapter(adapter);
@@ -208,9 +205,6 @@ public class TagSearchActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Integer res){
             super.onPostExecute(res);
-            if(res != 0){
-                showCaptchaPopup(context, p);
-            }
             if(adapter.getItemCount()==0) {
                 adapter.addData(search.getResult());
                 searchResult.setAdapter(adapter);
@@ -260,10 +254,6 @@ public class TagSearchActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String res){
             super.onPostExecute(res);
-            if(updated.getResult().size() == 0 && uadapter.getItemCount() == 0){
-                //error
-                showCaptchaPopup(context, p);
-            }
             if(uadapter.getItemCount()==0) {
                 uadapter.addData(updated.getResult());
                 searchResult.setAdapter(uadapter);

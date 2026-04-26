@@ -65,12 +65,15 @@ public class CustomHttpClient {
 
     public void setCookie(String k, String v){
         cookies.put(k, v);
+        persistCookies();
     }
     public void removeCookie(String k){
         cookies.remove(k);
+        persistCookies();
     }
     public void resetCookie(){
         this.cookies = new HashMap<>();
+        persistCookies();
     }
 
     public String getCookieHeader(){
@@ -94,6 +97,16 @@ public class CustomHttpClient {
             if(split <= 0)
                 continue;
             setCookie(s.substring(0, split), s.substring(split + 1));
+        }
+        persistCookies();
+    }
+
+    private void persistCookies(){
+        try {
+            if(p != null)
+                p.setSavedCookies(getCookieHeader());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

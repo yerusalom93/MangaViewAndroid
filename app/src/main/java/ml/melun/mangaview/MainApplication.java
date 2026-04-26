@@ -56,6 +56,7 @@ public class MainApplication extends MultiDexApplication {
                 url = p.getDefUrl();
             if(url == null || !url.startsWith("http"))
                 return;
+            httpClient.setCookies(p.getSavedCookies());
             CookieManager cookieManager = CookieManager.getInstance();
             cookieManager.setAcceptCookie(true);
             String cookies = cookieManager.getCookie(url);

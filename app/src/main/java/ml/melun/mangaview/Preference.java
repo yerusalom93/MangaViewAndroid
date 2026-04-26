@@ -47,6 +47,7 @@ public class Preference {
     int baseMode;
     boolean doublep;
     boolean doublepReverse;
+    String savedCookies;
 
     public SharedPreferences getSharedPref(){
         return this.sharedPref;
@@ -92,6 +93,7 @@ public class Preference {
             autoUrl = sharedPref.getBoolean("autoUrl", true);
             doublep = sharedPref.getBoolean("doublep", false);
             doublepReverse = sharedPref.getBoolean("doublepReverse", false);
+            savedCookies = sharedPref.getString("savedCookies", "");
             pageControlButtonOffset = sharedPref.getFloat("pageControlButtonOffset", -1);
             baseMode = sharedPref.getInt("baseMode", base_comic);
 //            if(login != null && login.isValid()){
@@ -600,6 +602,16 @@ public class Preference {
 
     public boolean getDoublep(){
         return doublep;
+    }
+
+    public String getSavedCookies(){
+        return savedCookies;
+    }
+
+    public void setSavedCookies(String savedCookies){
+        this.savedCookies = savedCookies;
+        prefsEditor.putString("savedCookies", savedCookies);
+        prefsEditor.commit();
     }
 
     public boolean getDoublepReverse(){

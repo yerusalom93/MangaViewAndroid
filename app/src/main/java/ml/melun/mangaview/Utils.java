@@ -420,17 +420,28 @@ public class Utils {
                             .addEncoded("url", p.getUrl())
                             .addEncoded("captcha_key", answer.getText().toString())
                             .build();
+                    String phpSession = httpClient.getCookie("PHPSESSID");
                     Map<String, String> headers = new HashMap<>();
-                    headers.put("cookie", "PHPSESSID=" + httpClient.getCookie("PHPSESSID") + ";");
+                    headers.put("Cookie", "PHPSESSID=" + phpSession + ";");
                     Response response = httpClient.post(p.getUrl() + "/bbs/captcha_check.php", requestBody, headers, true);
-                    System.out.println(response.code());
-                    ((Activity) context).runOnUiThread(() -> {
-                        //restart activity
-                        if(restartActivity) {
-                            ((Activity) context).finish();
-                            ((Activity) context).startActivity(((Activity) context).getIntent());
-                        }
-                    });
+                    int responseCode = response == null ? 0 : response.code();
+                    if(response != null)
+                        response.close();
+                    if(responseCode == 302) {
+                        Map<String, String> cookies = new HashMap<>();
+                        cookies.put("PHPSESSID", phpSession);
+                        Response follow = httpClient.mget("/?captcha_key=" + answer.getText().toString() + "&auto_login=on", false, cookies);
+                        if(follow != null)
+                            follow.close();
+                        ((Activity) context).runOnUiThread(() -> {
+                            if(restartActivity) {
+                                ((Activity) context).finish();
+                                ((Activity) context).startActivity(((Activity) context).getIntent());
+                            }
+                        });
+                    } else {
+                        ((Activity) context).runOnUiThread(() -> showTokiCaptchaPopup(context, p, restartActivity));
+                    }
                 }).start())
                 .setNegativeButton("취소", (dialogInterface, i) -> {
                     if(restartActivity)
