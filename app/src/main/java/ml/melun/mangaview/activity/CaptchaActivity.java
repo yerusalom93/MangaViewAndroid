@@ -122,7 +122,7 @@ public class CaptchaActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 syncCookies(cookiem, purl);
-                finishIfVerified(cookiem, purl, url);
+                finishIfVerified(purl, url);
             }
         };
 
@@ -152,17 +152,11 @@ public class CaptchaActivity extends AppCompatActivity {
         return base + path;
     }
 
-    private void finishIfVerified(CookieManager cookiem, String cookieUrl, String currentUrl) {
-        String cookieStr = cookiem.getCookie(cookieUrl);
-        String clearance = extractCookie(cookieStr, "cf_clearance");
-        if (clearance != null && !clearance.equals(staleClearance)) {
-            finishCaptchaWithPageHtml(currentUrl);
-            return;
-        }
+    private void finishIfVerified(String cookieUrl, String currentUrl) {
         if (currentUrl != null && verificationUrl != null
                 && samePageWithoutQuery(currentUrl, verificationUrl)
                 && !currentUrl.contains("/bbs/captcha")) {
-            finishCaptchaWithPageHtml(currentUrl);
+            finishCaptchaWithVerifiedPageHtml(currentUrl);
         }
     }
 
@@ -196,7 +190,7 @@ public class CaptchaActivity extends AppCompatActivity {
         finish();
     }
 
-    private void finishCaptchaWithPageHtml(String currentUrl) {
+    private void finishCaptchaWithVerifiedPageHtml(String currentUrl) {
         if (finishingCaptcha)
             return;
         finishingCaptcha = true;
@@ -207,16 +201,29 @@ public class CaptchaActivity extends AppCompatActivity {
         webView.evaluateJavascript("(function(){return document.documentElement.outerHTML;})()", value -> {
             try {
                 String html = new Gson().fromJson(value, String.class);
-                if (html != null && currentUrl != null) {
+                if (isVerifiedMangaPage(html) && currentUrl != null) {
                     MainApplication.saveVerifiedPageHtml(currentUrl, html);
                     if (verificationUrl != null)
                         MainApplication.saveVerifiedPageHtml(verificationUrl, html);
+                    finishCaptcha();
+                    return;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            finishCaptcha();
+            finishingCaptcha = false;
         });
+    }
+
+    private boolean isVerifiedMangaPage(String html) {
+        if (html == null)
+            return false;
+        String lower = html.toLowerCase();
+        if (lower.contains("captcha_key") || lower.contains("/bbs/captcha") || lower.contains("g-recaptcha"))
+            return false;
+        return lower.contains("div class=\"toon-title")
+                && lower.contains("div class=\"toon-nav")
+                && (lower.contains("html_data+=") || lower.contains("div class=\"view-padding"));
     }
 
     private void flushCookies(CookieManager cookiem) {
