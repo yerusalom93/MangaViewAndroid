@@ -284,7 +284,7 @@ public class Utils {
                 Toast.makeText(context, "네트워크 연결이 없습니다.", Toast.LENGTH_LONG).show();
                 if (force_close) ((Activity) context).finish();
             } else if (captchaCount == 0) {
-                startCaptchaActivity(context, code, fragment, url);
+                showTokiCaptchaPopup(context, p, force_close);
             } else {
                 AlertDialog.Builder builder;
                 String title = "오류";
@@ -297,7 +297,7 @@ public class Utils {
                         .setNeutralButton("확인", (dialogInterface, i) -> {
                             if (force_close) ((Activity) context).finish();
                         })
-                        .setPositiveButton("CAPTCHA 인증", (dialog, which) -> startCaptchaActivity(context, code, fragment, url))
+                        .setPositiveButton("CAPTCHA 인증", (dialog, which) -> showTokiCaptchaPopup(context, p, force_close))
                         .setNegativeButton("URL 설정", (dialogInterface, i) -> urlSettingPopup(context, p))
                         .setOnCancelListener(dialogInterface -> {
                             if (force_close) ((Activity) context).finish();
@@ -368,6 +368,10 @@ public class Utils {
 
 
     public static void showTokiCaptchaPopup(Context context, Preference p){
+        showTokiCaptchaPopup(context, p, true);
+    }
+
+    public static void showTokiCaptchaPopup(Context context, Preference p, boolean restartActivity){
         AlertDialog.Builder builder;
         String title = "캡차 인증";
         if (new Preference(context).getDarkTheme())
@@ -422,12 +426,20 @@ public class Utils {
                     System.out.println(response.code());
                     ((Activity) context).runOnUiThread(() -> {
                         //restart activity
-                        ((Activity) context).finish();
-                        ((Activity) context).startActivity(((Activity) context).getIntent());
+                        if(restartActivity) {
+                            ((Activity) context).finish();
+                            ((Activity) context).startActivity(((Activity) context).getIntent());
+                        }
                     });
                 }).start())
-                .setNegativeButton("취소", (dialogInterface, i) -> ((Activity) context).finish())
-                .setOnCancelListener(dialogInterface -> ((Activity) context).finish());
+                .setNegativeButton("취소", (dialogInterface, i) -> {
+                    if(restartActivity)
+                        ((Activity) context).finish();
+                })
+                .setOnCancelListener(dialogInterface -> {
+                    if(restartActivity)
+                        ((Activity) context).finish();
+                });
 
         builder.show();
     }

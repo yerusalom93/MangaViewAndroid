@@ -1,6 +1,7 @@
 package ml.melun.mangaview;
 
 import android.content.Context;
+import android.webkit.CookieManager;
 
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.multidex.MultiDexApplication;
@@ -44,6 +45,23 @@ public class MainApplication extends MultiDexApplication {
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
         p = new Preference(this);
         httpClient = new CustomHttpClient();
+        restoreWebViewCookies();
         super.onCreate();
+    }
+
+    private void restoreWebViewCookies() {
+        try {
+            String url = p.getUrl();
+            if(url == null || url.length() == 0)
+                url = p.getDefUrl();
+            if(url == null || !url.startsWith("http"))
+                return;
+            CookieManager cookieManager = CookieManager.getInstance();
+            cookieManager.setAcceptCookie(true);
+            String cookies = cookieManager.getCookie(url);
+            httpClient.setCookies(cookies);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

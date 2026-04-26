@@ -82,12 +82,10 @@ public class CaptchaActivity extends AppCompatActivity {
             staleClearance = webViewClearance;
         if (cookieHeader.length() > 0) {
             for (String cookie : cookieHeader.split("; ")) {
-                if (!cookie.startsWith("cf_clearance="))
-                    cookiem.setCookie(purl, cookie);
+                cookiem.setCookie(purl, cookie);
             }
             flushCookies(cookiem);
         }
-        clearClearanceCookie(cookiem, purl);
 
         WebViewClient client = new WebViewClient() {
 
@@ -132,20 +130,10 @@ public class CaptchaActivity extends AppCompatActivity {
         try {
             String cookieStr = cookiem.getCookie(url);
             httpClient.setCookies(cookieStr);
-            String clearance = extractCookie(cookieStr, "cf_clearance");
-            if (clearance != null && clearance.equals(staleClearance))
-                httpClient.removeCookie("cf_clearance");
             flushCookies(cookiem);
         } catch (Exception e) {
             Utils.showErrorPopup(this, "Failed to sync captcha cookies.", e, true);
         }
-    }
-
-    private void clearClearanceCookie(CookieManager cookiem, String url) {
-        httpClient.removeCookie("cf_clearance");
-        cookiem.setCookie(url, "cf_clearance=; Max-Age=0; Path=/");
-        cookiem.setCookie(url, "cf_clearance=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/");
-        flushCookies(cookiem);
     }
 
     private String buildUrl(String base, String path) {
