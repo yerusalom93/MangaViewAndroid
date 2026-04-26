@@ -83,6 +83,7 @@ public class CaptchaActivity extends AppCompatActivity {
 
         WebViewClient client = new WebViewClient() {
             private boolean captchaDone = false;
+            private boolean captchaPageDetected = false;
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
@@ -105,7 +106,13 @@ public class CaptchaActivity extends AppCompatActivity {
                 String lowerUrl = url.toLowerCase(Locale.ROOT);
                 // CAPTCHA page itself can load bootstrap/jquery resources, so do not
                 // close on resource load; close only after navigating away from challenge.
-                if (lowerUrl.contains("captcha")) return;
+                if (lowerUrl.contains("captcha")) {
+                    captchaPageDetected = true;
+                    return;
+                }
+                // Prevent instant close on initial non-captcha loads. Only finish after
+                // at least one captcha page was actually shown, then moved away from it.
+                if (!captchaPageDetected) return;
 
                 // read cookies and finish
                 try {
