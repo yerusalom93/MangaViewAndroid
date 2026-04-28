@@ -20,6 +20,8 @@ import ml.melun.mangaview.mangaview.Title;
 import static ml.melun.mangaview.mangaview.MTitle.baseModeStr;
 import static ml.melun.mangaview.mangaview.MTitle.base_comic;
 import static ml.melun.mangaview.mangaview.Title.isInteger;
+import static ml.melun.mangaview.mangaview.CustomHttpClient.DEFAULT_COMIC_URL;
+import static ml.melun.mangaview.mangaview.CustomHttpClient.WEBTOON_URL;
 
 public class Preference {
     SharedPreferences sharedPref;
@@ -37,6 +39,7 @@ public class Preference {
     boolean dataSave;
     int startTab;
     String url;
+    String webtoonUrl;
     boolean stretch;
     boolean leftRight;
     Login login;
@@ -84,16 +87,22 @@ public class Preference {
             pageRtl = sharedPref.getBoolean("pageRtl",false);
             dataSave = sharedPref.getBoolean("dataSave", false);
             startTab = sharedPref.getInt("startTab", 0);
-            defUrl = sharedPref.getString("defUrl", "설정되지 않음");
-            url = sharedPref.getString("url", "");
+            defUrl = normalizeComicUrl(sharedPref.getString("defUrl", DEFAULT_COMIC_URL));
+            url = normalizeComicUrl(sharedPref.getString("url", DEFAULT_COMIC_URL));
+            webtoonUrl = normalizeWebtoonUrl(sharedPref.getString("webtoonUrl", WEBTOON_URL));
             stretch = sharedPref.getBoolean("stretch", false);
             leftRight = sharedPref.getBoolean("leftRight", false);
             login = gson.fromJson(sharedPref.getString("login","{}"),new TypeToken<Login>(){}.getType());
-            autoUrl = sharedPref.getBoolean("autoUrl", true);
+            autoUrl = false;
             doublep = sharedPref.getBoolean("doublep", false);
             doublepReverse = sharedPref.getBoolean("doublepReverse", false);
             pageControlButtonOffset = sharedPref.getFloat("pageControlButtonOffset", -1);
             baseMode = sharedPref.getInt("baseMode", base_comic);
+            prefsEditor.putString("defUrl", defUrl)
+                    .putString("url", url)
+                    .putString("webtoonUrl", webtoonUrl)
+                    .putBoolean("autoUrl", false)
+                    .apply();
 //            if(login != null && login.isValid()){
 //                setSession(login.getCookie());
 //            }
@@ -107,6 +116,32 @@ public class Preference {
         return baseModeStr(this.baseMode);
     }
 
+    private String normalizeComicUrl(String sourceUrl) {
+        if(sourceUrl == null || sourceUrl.trim().length() == 0)
+            return DEFAULT_COMIC_URL;
+        String normalized = sourceUrl.trim();
+        while(normalized.endsWith("/"))
+            normalized = normalized.substring(0, normalized.length() - 1);
+        if(normalized.contains("manatoki"))
+            return DEFAULT_COMIC_URL;
+        if(normalized.equals(WEBTOON_URL))
+            return DEFAULT_COMIC_URL;
+        return normalized;
+    }
+
+    private String normalizeWebtoonUrl(String sourceUrl) {
+        if(sourceUrl == null || sourceUrl.trim().length() == 0)
+            return WEBTOON_URL;
+        String normalized = sourceUrl.trim();
+        while(normalized.endsWith("/"))
+            normalized = normalized.substring(0, normalized.length() - 1);
+        if(normalized.contains("manatoki"))
+            return WEBTOON_URL;
+        if(normalized.endsWith("/cm"))
+            return normalized.substring(0, normalized.length() - 3);
+        return normalized;
+    }
+
     public int getBaseMode(){
         return this.baseMode;
     }
@@ -118,8 +153,8 @@ public class Preference {
     }
 
     public void setDefUrl(String defUrl){
-        this.defUrl = defUrl;
-        prefsEditor.putString("defUrl", defUrl);
+        this.defUrl = normalizeComicUrl(defUrl);
+        prefsEditor.putString("defUrl", this.defUrl);
         prefsEditor.commit();
     }
 
@@ -162,8 +197,18 @@ public class Preference {
     }
 
     public void setUrl(String url) {
-        this.url = url;
-        prefsEditor.putString("url", url);
+        this.url = normalizeComicUrl(url);
+        prefsEditor.putString("url", this.url);
+        prefsEditor.commit();
+    }
+
+    public String getWebtoonUrl() {
+        return webtoonUrl;
+    }
+
+    public void setWebtoonUrl(String webtoonUrl) {
+        this.webtoonUrl = normalizeWebtoonUrl(webtoonUrl);
+        prefsEditor.putString("webtoonUrl", this.webtoonUrl);
         prefsEditor.commit();
     }
 
@@ -293,10 +338,15 @@ public class Preference {
     }
 
     public void setBookmark(Title title, int id){
+        if(title == null)
+            return;
         int titleId = title.getId();
         if(titleId>0) {
+            String key = title.getBaseMode() + "." + title.getId();
             try {
-                bookmark.put(title.getBaseMode() + "." + title.getId(), id);
+                if(bookmark.has(key) && bookmark.getInt(key) == id)
+                    return;
+                bookmark.put(key, id);
             } catch (Exception e) {
                 //
             }
@@ -320,16 +370,20 @@ public class Preference {
         int titleId = title.getId();
         if(titleId>0) {
             try {
-                bookmark.remove(title.getBaseMode()+"."+titleId);
+                String key = title.getBaseMode()+"."+titleId;
+                if(!bookmark.has(key))
+                    return;
+                bookmark.remove(key);
             } catch (Exception e) {
                 //
             }
+            writeBookmark();
         }
     }
 
     public void writeBookmark(){
         prefsEditor.putString("bookmark2", bookmark.toString());
-        prefsEditor.commit();
+        prefsEditor.apply();
     }
 
     public void resetBookmark(){
@@ -360,8 +414,11 @@ public class Preference {
     public void setViewerBookmark(Manga m,int index){
         if(m.getId()>-1) {
             if (index > 0) {
+                String key = m.getBaseMode() + "."+m.getId();
                 try {
-                    pagebookmark.put(m.getBaseMode() + "."+m.getId(), index);
+                    if(pagebookmark.has(key) && pagebookmark.getInt(key) == index)
+                        return;
+                    pagebookmark.put(key, index);
                 } catch (Exception e) {
                     //
                 }
@@ -380,7 +437,10 @@ public class Preference {
         return 0;
     }
     public void removeViewerBookmark(Manga m){
-        pagebookmark.remove(m.getBaseMode()+"."+m.getId());
+        String key = m.getBaseMode()+"."+m.getId();
+        if(!pagebookmark.has(key))
+            return;
+        pagebookmark.remove(key);
         writeViewerBookmark();
     }
     public void resetViewerBookmark(){
@@ -391,7 +451,7 @@ public class Preference {
     }
     private void writeViewerBookmark(){
         prefsEditor.putString("bookmark", pagebookmark.toString());
-        prefsEditor.commit();
+        prefsEditor.apply();
     }
 
     public boolean toggleFavorite(Title tmp, int position){

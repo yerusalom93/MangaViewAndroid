@@ -16,8 +16,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.model.GlideUrl;
-import com.bumptech.glide.load.model.LazyHeaders;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
 
@@ -47,7 +46,8 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     Decoder d;
     int width;
     int count = 0;
-    final static int MaxStackSize = 2;
+    final static int MaxStackSize = 3;
+    private static final int PRELOAD_AHEAD_COUNT = 3;
     ViewerActivity.InfiniteScrollCallback callback;
     Title title;
 
@@ -77,6 +77,8 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
         public Manga next;
         public Manga prev;
+        boolean nextRequested;
+        boolean prevRequested;
     }
 
     @Override
@@ -105,26 +107,58 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
-    public void insertManga(Manga m){
+    public int insertManga(Manga m){
         if(items == null || items.size() == 0) {
             appendManga(m);
-            return;
+            return 0;
         }
         int prevsize = items.size();
         List<String> imgs = m.getImgs(mainContext);
         for(int i=imgs.size()-1; i>=0; i--){
             if(autoCut)
-                items.add(new PageItem(0,imgs.get(i),m,PageItem.SECOND));
+                items.add(0, new PageItem(i,imgs.get(i),m,PageItem.SECOND));
             items.add(0,new PageItem(i,imgs.get(i),m));
         }
         items.add(0, new InfoItem(null, m));
 
-        notifyItemRangeInserted(0, items.size()-prevsize);
+        int inserted = items.size()-prevsize;
+        notifyItemRangeInserted(0, inserted);
         count++;
 
         if(count>MaxStackSize){
             popLast();
         }
+        return inserted;
+    }
+
+    public int findLastPagePosition(Manga m) {
+        if(m == null || items == null)
+            return RecyclerView.NO_POSITION;
+        for(int i = items.size() - 1; i >= 0; i--) {
+            Object item = items.get(i);
+            if(item instanceof PageItem && sameManga(((PageItem)item).manga, m))
+                return i;
+        }
+        return RecyclerView.NO_POSITION;
+    }
+
+    public boolean hasMangaLoaded(Manga m) {
+        return findFirstPagePosition(m) != RecyclerView.NO_POSITION;
+    }
+
+    public int findFirstPagePosition(Manga m) {
+        if(m == null || items == null)
+            return RecyclerView.NO_POSITION;
+        for(int i = 0; i < items.size(); i++) {
+            Object item = items.get(i);
+            if(item instanceof PageItem && sameManga(((PageItem)item).manga, m))
+                return i;
+        }
+        return RecyclerView.NO_POSITION;
+    }
+
+    private boolean sameManga(Manga a, Manga b) {
+        return a != null && b != null && a.getId() == b.getId();
     }
 
     public void popFirst(){
@@ -143,19 +177,21 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     }
 
     public void popLast(){
-        int rsize = 0;
-        items.remove(items.size()-1);
-        for(int i=items.size()-2; i>=0; i--){
+        int originalSize = items.size();
+        int rsize = -1;
+        for(int i=originalSize-2; i>=0; i--){
             if(items.get(i) instanceof InfoItem){
                 rsize = i;
                 break;
             }
         }
-        if (items.size() > rsize + 1) {
-            items.subList(rsize + 1, items.size()).clear();
+        if (rsize >= 0 && originalSize > rsize + 1) {
+            int removeStart = rsize + 1;
+            int removeCount = originalSize - removeStart;
+            items.subList(removeStart, originalSize).clear();
+            count--;
+            notifyItemRangeRemoved(removeStart, removeCount);
         }
-        count--;
-        notifyItemRangeRemoved(rsize+1,items.size()-rsize);
     }
 
     // data is passed into the constructor
@@ -178,7 +214,7 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     public void preloadAll(){
         for(Object o : items) {
             if(o instanceof PageItem) {
-                Object url = ((PageItem) o).manga.isOnline() ? getGlideUrl(((PageItem)o).img) : ((PageItem)o).img;
+                Object url = getImageModel((PageItem) o);
                 Glide.with(mainContext)
                         .load(url)
                         .preload();
@@ -228,8 +264,9 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }else if(type == INFO){
             //INFO
             ((InfoViewHolder) holder).loading.setVisibility(View.INVISIBLE);
-            Manga prev = ((InfoItem)items.get(pos)).prev;
-            Manga next = ((InfoItem)items.get(pos)).next;
+            InfoItem info = (InfoItem)items.get(pos);
+            Manga prev = info.prev;
+            Manga next = info.next;
 
             if(prev == null){
                 prev = next.prevEp();
@@ -243,12 +280,16 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             ViewerActivity.InfiniteLoadCallback r = new ViewerActivity.InfiniteLoadCallback() {
                 @Override
                 public void prevLoaded(Manga m) {
+                    if(!isInfoHolderStillBound(holder, info))
+                        return;
                     ((InfoViewHolder) holder).loading.setVisibility(View.INVISIBLE);
                     ((InfoViewHolder) holder).prevInfo.setText(m==null?"오류":m.getName());
                 }
 
                 @Override
                 public void nextLoaded(Manga m) {
+                    if(!isInfoHolderStillBound(holder, info))
+                        return;
                     ((InfoViewHolder) holder).loading.setVisibility(View.INVISIBLE);
                     ((InfoViewHolder) holder).nextInfo.setText(m==null?"오류":m.getName());
                 }
@@ -256,14 +297,12 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
             Manga m;
             if(pos == 0){
-                ((InfoViewHolder) holder).loading.setVisibility(View.VISIBLE);
-                m = callback.prevEp(r, next);
-                ((InfoItem)items.get(pos)).prev = m;
-                ((InfoViewHolder) holder).prevInfo.setText(m==null? "첫 화":"이전 화");
-            }else if(pos == items.size()-1){
+                return;
+            }else if(shouldAutoLoadFromInfoItem(pos, info)){
+                info.nextRequested = true;
                 ((InfoViewHolder) holder).loading.setVisibility(View.VISIBLE);
                 m = callback.nextEp(r, prev);
-                ((InfoItem)items.get(pos)).next = m;
+                info.next = m;
                 ((InfoViewHolder) holder).nextInfo.setText(m==null? "마지막 화":"다음 화");
             }
         }
@@ -273,16 +312,21 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     void glideBind(ImgViewHolder holder, int pos){
         PageItem item = ((PageItem)items.get(pos));
-        Object url = item.manga.isOnline() ? getGlideUrl(item.img) : item.img;
+        Object url = getImageModel(item);
+        holder.frame.setMinimumHeight(Math.max(width, 1));
         if (autoCut) {
             //set image to holder view
             Glide.with(holder.frame)
                     .asBitmap()
+                    .diskCacheStrategy(DiskCacheStrategy.DATA)
                     .load(url)
                     .placeholder(R.drawable.placeholder)
                     .into(new CustomTarget<Bitmap>() {
                         @Override
                         public void onResourceReady(@NonNull Bitmap bitmap, Transition<? super Bitmap> transition) {
+                            if(!isHolderStillBound(holder, item))
+                                return;
+                            holder.frame.setMinimumHeight(0);
                             bitmap = d.decode(bitmap, width);
                             int width = bitmap.getWidth();
                             int height = bitmap.getHeight();
@@ -310,12 +354,14 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                         @Override
                         public void onLoadCleared(@Nullable Drawable placeholder) {
+                            holder.frame.setMinimumHeight(Math.max(width, 1));
                             holder.frame.setImageDrawable(placeholder);
                             holder.refresh.setVisibility(View.VISIBLE);
                         }
 
                         @Override
                         public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                            holder.frame.setMinimumHeight(Math.max(width, 1));
                             holder.frame.setImageResource(R.drawable.placeholder);
                             holder.refresh.setVisibility(View.VISIBLE);
                         }
@@ -323,10 +369,14 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         } else {
             Glide.with(holder.frame)
                     .asBitmap()
+                    .diskCacheStrategy(DiskCacheStrategy.DATA)
                     .load(url)
                     .into(new CustomTarget<Bitmap>() {
                         @Override
                         public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                            if(!isHolderStillBound(holder, item))
+                                return;
+                            holder.frame.setMinimumHeight(0);
                             resource = d.decode(resource, width);
                             holder.frame.setImageBitmap(resource);
                             holder.refresh.setVisibility(View.GONE);
@@ -334,16 +384,54 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                         @Override
                         public void onLoadCleared(@Nullable Drawable placeholder) {
+                            holder.frame.setMinimumHeight(Math.max(width, 1));
                             holder.frame.setImageDrawable(placeholder);
                             holder.refresh.setVisibility(View.VISIBLE);
                         }
 
                         @Override
                         public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                            holder.frame.setMinimumHeight(Math.max(width, 1));
                             holder.frame.setImageResource(R.drawable.placeholder);
                             holder.refresh.setVisibility(View.VISIBLE);
                         }
                     });
+        }
+    }
+
+    private Object getImageModel(PageItem item) {
+        return item.manga.isOnline() ? getGlideUrl(item.img, item.manga.getBaseMode()) : item.img;
+    }
+
+    private boolean isHolderStillBound(ImgViewHolder holder, PageItem item) {
+        int position = holder.getAdapterPosition();
+        return position != RecyclerView.NO_POSITION
+                && position < items.size()
+                && items.get(position) == item;
+    }
+
+    private boolean isInfoHolderStillBound(RecyclerView.ViewHolder holder, InfoItem item) {
+        int position = holder.getAdapterPosition();
+        return position != RecyclerView.NO_POSITION
+                && position < items.size()
+                && items.get(position) == item;
+    }
+
+    private boolean shouldAutoLoadFromInfoItem(int position, InfoItem info) {
+        // ViewerActivity owns boundary loading so repeated binds cannot enqueue duplicate episodes.
+        return false;
+    }
+
+    private void preloadAhead(int adapterPosition) {
+        int preloaded = 0;
+        for(int i = adapterPosition + 1; i < items.size() && preloaded < PRELOAD_AHEAD_COUNT; i++) {
+            Object next = items.get(i);
+            if(next instanceof PageItem) {
+                Glide.with(mainContext)
+                        .load(getImageModel((PageItem) next))
+                        .preload();
+                preloaded++;
+            }
         }
     }
 
@@ -358,6 +446,7 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     }
 
     PageItem current;
+    int currentMangaId = -1;
 
     boolean needUpdate = true;
 
@@ -365,10 +454,13 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
         //handle bookmark
         int layoutPos = holder.getLayoutPosition();
+        if(layoutPos == RecyclerView.NO_POSITION || layoutPos >= items.size())
+            return;
         int type = getItemViewType(layoutPos);
         if(type == IMG) {
             PageItem pi = (PageItem) items.get(layoutPos);
             current = pi;
+            preloadAhead(layoutPos);
             if(pi.manga.useBookmark()){
                 int index = pi.index;
                 if (index == 0) {
@@ -378,14 +470,16 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 }
             }
             p.setBookmark(title, pi.manga.getId());
-            if(needUpdate){
+            if(needUpdate || currentMangaId != pi.manga.getId()){
                 needUpdate = false;
+                currentMangaId = pi.manga.getId();
                 callback.updateInfo(pi.manga);
             }
         } else if(type == INFO){
             needUpdate = true;
         }
     }
+
 //
 //    @Override
 //    public void onViewDetachedFromWindow(@NonNull RecyclerView.ViewHolder holder) {
@@ -413,7 +507,9 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             refresh = itemView.findViewById(R.id.refreshButton);
             refresh.setOnClickListener(v -> {
                 //refresh image
-                notifyItemChanged(getAdapterPosition());
+                int position = getAdapterPosition();
+                if(position != RecyclerView.NO_POSITION)
+                    notifyItemChanged(position);
             });
             itemView.setOnClickListener(this);
             itemView.setOnLongClickListener(this);
@@ -455,4 +551,3 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     }
 
 }
-

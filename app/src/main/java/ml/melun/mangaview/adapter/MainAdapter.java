@@ -182,6 +182,8 @@ public class MainAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             LinearLayoutManager lm = new NpaLinearLayoutManager(mainContext);
             lm.setOrientation(RecyclerView.HORIZONTAL);
             updatedList.setLayoutManager(lm);
+            updatedList.setHasFixedSize(true);
+            updatedList.setItemViewCacheSize(12);
             updatedList.setAdapter(uadapter);
             uadapter.setClickListener(new MainUpdatedAdapter.OnClickCallback() {
                 @Override
@@ -380,6 +382,7 @@ public class MainAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void captchaCallback();
         void clickedSearch(String query);
         void clickedRetry();
+        void clickedCategoryPath(String title, String path);
     }
 
     private class MainFetcher extends AsyncTask<Void, Integer, MainPage> {
@@ -473,5 +476,3 @@ public class MainAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
 }
-
-

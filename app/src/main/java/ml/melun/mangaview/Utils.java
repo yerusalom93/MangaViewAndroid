@@ -20,6 +20,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.view.Display;
@@ -63,6 +64,7 @@ import ml.melun.mangaview.interfaces.IntegerCallback;
 import ml.melun.mangaview.interfaces.StringCallback;
 import ml.melun.mangaview.mangaview.CustomHttpClient;
 import ml.melun.mangaview.mangaview.Login;
+import ml.melun.mangaview.mangaview.MTitle;
 import ml.melun.mangaview.mangaview.Manga;
 import ml.melun.mangaview.mangaview.Title;
 import okhttp3.FormBody;
@@ -76,6 +78,13 @@ import static ml.melun.mangaview.activity.CaptchaActivity.REQUEST_CAPTCHA;
 import static ml.melun.mangaview.activity.SettingsActivity.urlSettingPopup;
 
 public class Utils {
+    private static final String MANGA_STATE_V2 = "manga_state_v2";
+    private static final String MANGA_ID = "manga_id";
+    private static final String MANGA_NAME = "manga_name";
+    private static final String MANGA_DATE = "manga_date";
+    private static final String MANGA_BASE_MODE = "manga_base_mode";
+    private static final String MANGA_MODE = "manga_mode";
+    private static final String MANGA_OFFLINE_PATH = "manga_offline_path";
 
     private static int captchaCount = 1;
 
@@ -184,6 +193,49 @@ public class Utils {
         }
         viewer.putExtra("manga",new Gson().toJson(manga));
         return viewer;
+    }
+
+    public static void saveMangaState(Bundle outState, Manga manga) {
+        if(outState == null || manga == null)
+            return;
+        outState.putBoolean(MANGA_STATE_V2, true);
+        outState.putInt(MANGA_ID, manga.getId());
+        outState.putString(MANGA_NAME, manga.getName());
+        outState.putString(MANGA_DATE, manga.getDate());
+        outState.putInt(MANGA_BASE_MODE, manga.getBaseMode());
+        outState.putInt(MANGA_MODE, manga.getMode());
+        outState.putString(MANGA_OFFLINE_PATH, manga.getOfflinePath());
+    }
+
+    public static Manga restoreMangaState(Bundle savedInstanceState, Title title) {
+        if(savedInstanceState == null || !savedInstanceState.getBoolean(MANGA_STATE_V2, false))
+            return null;
+        int id = savedInstanceState.getInt(MANGA_ID, -1);
+        int baseMode = savedInstanceState.getInt(MANGA_BASE_MODE,
+                title == null ? MTitle.base_comic : title.getBaseMode());
+        Manga restored = findSavedEpisode(title, id, baseMode);
+        if(restored == null) {
+            String name = savedInstanceState.getString(MANGA_NAME, "");
+            String date = savedInstanceState.getString(MANGA_DATE, "");
+            restored = new Manga(id, name == null ? "" : name, date == null ? "" : date, baseMode);
+        }
+        restored.setMode(savedInstanceState.getInt(MANGA_MODE, restored.getMode()));
+        String offlinePath = savedInstanceState.getString(MANGA_OFFLINE_PATH);
+        if(offlinePath != null)
+            restored.setOfflinePath(offlinePath);
+        if(title != null)
+            restored.setTitle(title);
+        return restored;
+    }
+
+    private static Manga findSavedEpisode(Title title, int id, int baseMode) {
+        if(title == null || title.getEps() == null)
+            return null;
+        for(Manga episode : title.getEps()) {
+            if(episode != null && episode.getId() == id && episode.getBaseMode() == baseMode)
+                return episode;
+        }
+        return null;
     }
     public static void showPopup(Context context, String title, String content, DialogInterface.OnClickListener clickListener, DialogInterface.OnCancelListener cancelListener){
         AlertDialog.Builder builder;
@@ -317,6 +369,8 @@ public class Utils {
 
     static void startCaptchaActivity(Context context, int code, Fragment fragment, String url){
         Intent captchaIntent = new Intent(context, CaptchaActivity.class);
+        if(url != null && url.startsWith("/"))
+            url = httpClient.getUrl(url) + url;
         System.out.println("ppppsend " + url);
         captchaIntent.putExtra("url", url);
         if(fragment == null)
@@ -383,7 +437,7 @@ public class Utils {
             Response r;
             int tries = 3;
             while(tries > 0) {
-                r = httpClient.post(p.getUrl() + "/plugin/kcaptcha/kcaptcha_session.php", new FormBody.Builder().build(), new HashMap<>(),false);
+                r = httpClient.post(p.getUrl() + "/plugin/kcaptcha/kcaptcha_session.php", new FormBody.Builder().build(), new HashMap<>(),true);
                 if(r.code() == 200) {
                     List<String> setcookie = r.headers("Set-Cookie");
                     for (String c : setcookie) {
@@ -433,9 +487,45 @@ public class Utils {
     }
 
     public static GlideUrl getGlideUrl(String image){
-        GlideUrl url = new GlideUrl(image, new LazyHeaders.Builder()
-                .addHeader("Referer", p.getUrl())
+        return getGlideUrl(image, guessImageBaseMode(image));
+    }
+
+    public static GlideUrl getGlideUrl(String image, int baseMode){
+        String referer = httpClient.getUrl(baseMode);
+        String url = normalizeImageUrl(image, baseMode);
+        return new GlideUrl(url, new LazyHeaders.Builder()
+                .addHeader("Referer", referer)
                 .build());
+    }
+
+    private static int guessImageBaseMode(String image) {
+        if(image == null)
+            return MTitle.base_comic;
+        String lower = image.toLowerCase();
+        if(lower.contains("/webtoon") || lower.contains("webtoon"))
+            return MTitle.base_webtoon;
+        return MTitle.base_comic;
+    }
+
+    private static String normalizeImageUrl(String image, int baseMode) {
+        if(image == null)
+            return "";
+        String url = image.trim();
+        if(url.startsWith("//"))
+            return "https:" + url;
+        if(url.startsWith("/"))
+            return getSiteRoot(baseMode) + url;
+        if(!url.startsWith("http") && !url.contains("://"))
+            return getSiteRoot(baseMode) + "/" + url;
+        return url;
+    }
+
+    private static String getSiteRoot(int baseMode) {
+        String url = httpClient.getUrl(baseMode);
+        while(url.endsWith("/"))
+            url = url.substring(0, url.length() - 1);
+        if(url.endsWith("/cm"))
+            return url.substring(0, url.length() - 3);
         return url;
     }
 

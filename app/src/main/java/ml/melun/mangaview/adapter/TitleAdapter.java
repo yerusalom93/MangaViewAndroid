@@ -23,6 +23,7 @@ import ml.melun.mangaview.mangaview.MTitle;
 import ml.melun.mangaview.mangaview.Title;
 
 import static ml.melun.mangaview.MainApplication.p;
+import static ml.melun.mangaview.Utils.getGlideUrl;
 
 public class TitleAdapter extends RecyclerView.Adapter<TitleAdapter.ViewHolder> implements Filterable {
 
@@ -109,18 +110,22 @@ public class TitleAdapter extends RecyclerView.Adapter<TitleAdapter.ViewHolder> 
 
     public void addData(List<?> t){
         int oSize = mData.size();
+        int inserted = 0;
         for(Object d:t){
             if(d instanceof Title){
                 ((Title) d).setBookmark(p.getBookmark((Title)d));
                 mData.add((Title)d);
+                inserted++;
             } else if(d instanceof MTitle){
                 Title d2 = new Title((MTitle)d);
                 d2.setBookmark(p.getBookmark((MTitle) d));
                 mData.add(d2);
+                inserted++;
             }
         }
         mDataFiltered = mData;
-        notifyItemRangeInserted(oSize,t.size());
+        if(inserted > 0)
+            notifyItemRangeInserted(oSize, inserted);
     }
 
     public void setData(List<?> t){
@@ -168,6 +173,8 @@ public class TitleAdapter extends RecyclerView.Adapter<TitleAdapter.ViewHolder> 
         Title data = mDataFiltered.get(position);
         String title = data.getName();
         String thumb = data.getThumb();
+        if(thumb == null)
+            thumb = "";
         String author = data.getAuthor();
         StringBuilder tags = new StringBuilder();
         int bookmark = data.getBookmark();
@@ -189,9 +196,8 @@ public class TitleAdapter extends RecyclerView.Adapter<TitleAdapter.ViewHolder> 
             holder.counterContainer.setVisibility(View.GONE);
         }
 
-
-
-        if(thumb.length()>1 && (!save || forceThumbnail)) Glide.with(holder.thumb).load(thumb).into(holder.thumb);
+        Glide.with(holder.thumb).clear(holder.thumb);
+        if(thumb.length()>1 && (!save || forceThumbnail)) Glide.with(holder.thumb).load(getGlideUrl(thumb, data.getBaseMode())).into(holder.thumb);
         else holder.thumb.setImageBitmap(null);
         if(save && !forceThumbnail) holder.thumb.setVisibility(View.GONE);
         if(bookmark>0 && resume) holder.resume.setVisibility(View.VISIBLE);

@@ -23,7 +23,7 @@ import ml.melun.mangaview.adapter.MainAdapter;
 import ml.melun.mangaview.adapter.MainWebtoonAdapter;
 import ml.melun.mangaview.mangaview.Manga;
 import ml.melun.mangaview.mangaview.Title;
-import ml.melun.mangaview.ui.NpaFlexboxLayoutManager;
+import ml.melun.mangaview.ui.NpaLinearLayoutManager;
 
 import static ml.melun.mangaview.MainApplication.p;
 import static ml.melun.mangaview.Utils.episodeIntent;
@@ -35,7 +35,7 @@ import static ml.melun.mangaview.mangaview.MTitle.base_webtoon;
 public class MainMain extends Fragment{
 
     RecyclerView mainRecycler;
-    MainAdapter mainadapter;
+    MainWebtoonAdapter mainComicAdapter;
     MainWebtoonAdapter mainWebtoonAdapter;
     Fragment fragment;
     boolean wait = false;
@@ -46,6 +46,8 @@ public class MainMain extends Fragment{
     final static int WEBTOON_TAB = 1;
 
     boolean fragmentActive = false;
+    boolean comicFetched = false;
+    boolean webtoonFetched = false;
 
     public void setWait(Boolean wait){
         this.wait = wait;
@@ -71,12 +73,10 @@ public class MainMain extends Fragment{
     public void initializeCallback(){
         callback = success -> {
             wait = false;
-            if(mainadapter != null && fragmentActive) {
-                mainadapter.fetch();
-            }
-            if(mainWebtoonAdapter != null && fragmentActive) {
-                mainWebtoonAdapter.fetch();
-            }
+            comicFetched = false;
+            webtoonFetched = false;
+            if(fragmentActive)
+                fetchSelected();
         };
     }
 
@@ -106,11 +106,13 @@ public class MainMain extends Fragment{
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 if(tab.getPosition() == COMIC_TAB){
-                    mainRecycler.setAdapter(mainadapter);
+                    mainRecycler.setAdapter(mainComicAdapter);
                     p.setBaseMode(base_comic);
+                    fetchComic();
                 }else if(tab.getPosition() == WEBTOON_TAB){
                     mainRecycler.setAdapter(mainWebtoonAdapter);
                     p.setBaseMode(base_webtoon);
+                    fetchWebtoon();
                 }
             }
 
@@ -129,7 +131,7 @@ public class MainMain extends Fragment{
         //main content
         // 최근 추가된 만화
         mainRecycler = rootView.findViewById(R.id.main_recycler);
-        NpaFlexboxLayoutManager lm = new NpaFlexboxLayoutManager(getContext());
+        NpaLinearLayoutManager lm = new NpaLinearLayoutManager(getContext());
         mainRecycler.setLayoutManager(lm);
 
 
@@ -153,6 +155,7 @@ public class MainMain extends Fragment{
                 Intent i = new Intent(getContext(), TagSearchActivity.class);
                 i.putExtra("query",t);
                 i.putExtra("mode",2);
+                i.putExtra("baseMode", p.getBaseMode());
                 startActivity(i);
             }
 
@@ -161,6 +164,7 @@ public class MainMain extends Fragment{
                 Intent i = new Intent(getContext(), TagSearchActivity.class);
                 i.putExtra("query",t);
                 i.putExtra("mode",3);
+                i.putExtra("baseMode", p.getBaseMode());
                 startActivity(i);
             }
 
@@ -169,6 +173,7 @@ public class MainMain extends Fragment{
                 Intent i = new Intent(getContext(), TagSearchActivity.class);
                 i.putExtra("query",t);
                 i.putExtra("mode",4);
+                i.putExtra("baseMode", p.getBaseMode());
                 startActivity(i);
             }
 
@@ -193,24 +198,53 @@ public class MainMain extends Fragment{
             public void clickedRetry() {
                 mainWebtoonAdapter.fetch();
             }
+
+            @Override
+            public void clickedCategoryPath(String title, String path) {
+                Intent i = new Intent(getContext(), TagSearchActivity.class);
+                i.putExtra("query", path);
+                i.putExtra("title", title);
+                i.putExtra("mode", 8);
+                i.putExtra("baseMode", p.getBaseMode());
+                startActivity(i);
+            }
         };
 
-        mainadapter = new MainAdapter(getContext());
-        mainadapter.setMainClickListener(listener);
+        mainComicAdapter = new MainWebtoonAdapter(getContext(), base_comic);
+        mainComicAdapter.setListener(listener);
 
         mainWebtoonAdapter = new MainWebtoonAdapter(getContext());
         mainWebtoonAdapter.setListener(listener);
 
         if(p.getBaseMode() == base_comic)
-            mainRecycler.setAdapter(mainadapter);
+            mainRecycler.setAdapter(mainComicAdapter);
         else
             mainRecycler.setAdapter(mainWebtoonAdapter);
 
-        if(!wait) {
-            mainadapter.fetch();
+        if(!wait)
+            fetchSelected();
+        return rootView;
+    }
+
+    private void fetchSelected() {
+        if(p.getBaseMode() == base_comic)
+            fetchComic();
+        else
+            fetchWebtoon();
+    }
+
+    private void fetchComic() {
+        if(mainComicAdapter != null && !comicFetched) {
+            comicFetched = true;
+            mainComicAdapter.fetch();
+        }
+    }
+
+    private void fetchWebtoon() {
+        if(mainWebtoonAdapter != null && !webtoonFetched) {
+            webtoonFetched = true;
             mainWebtoonAdapter.fetch();
         }
-        return rootView;
     }
 
     @Override
@@ -226,9 +260,28 @@ public class MainMain extends Fragment{
     }
 
     @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if(mainComicAdapter != null)
+            mainComicAdapter.cancelFetch();
+        if(mainWebtoonAdapter != null)
+            mainWebtoonAdapter.cancelFetch();
+        mainRecycler = null;
+        mainComicAdapter = null;
+        mainWebtoonAdapter = null;
+        comicFetched = false;
+        webtoonFetched = false;
+    }
+
+    @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(resultCode == RESULT_CAPTCHA && mainadapter!=null)
-            mainadapter.fetch();
+        if(resultCode == RESULT_CAPTCHA) {
+            if(p.getBaseMode() == base_comic)
+                comicFetched = false;
+            else
+                webtoonFetched = false;
+            fetchSelected();
+        }
     }
 }

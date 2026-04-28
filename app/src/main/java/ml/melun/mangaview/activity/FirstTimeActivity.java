@@ -14,11 +14,13 @@ import java.text.SimpleDateFormat;
 import ml.melun.mangaview.CheckInfo;
 import ml.melun.mangaview.R;
 import ml.melun.mangaview.UrlUpdater;
+import ml.melun.mangaview.mangaview.WfwfDomainResolver;
 
 import static ml.melun.mangaview.CheckInfo.COLOR_DARK;
 import static ml.melun.mangaview.MainApplication.httpClient;
 import static ml.melun.mangaview.MainApplication.p;
 import static ml.melun.mangaview.Utils.showYesNoPopup;
+import static ml.melun.mangaview.mangaview.CustomHttpClient.DEFAULT_COMIC_URL;
 
 public class FirstTimeActivity extends AppCompatActivity {
 
@@ -42,6 +44,8 @@ public class FirstTimeActivity extends AppCompatActivity {
         this.overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
         setContentView(R.layout.activity_first_time);
         input = this.findViewById(R.id.first_def_url);
+        input.setText(DEFAULT_COMIC_URL);
+        input.setSelection(input.getText().length());
 
 
         pd = new ProgressDialog(context, R.style.darkDialog);
@@ -52,6 +56,10 @@ public class FirstTimeActivity extends AppCompatActivity {
         this.findViewById(R.id.eulaAgreeBtn).setOnClickListener(view -> {
             pd.show();
             String defurl = input.getText().toString();
+            if(DEFAULT_COMIC_URL.equals(trimTrailingSlash(defurl))) {
+                acceptDirectUrl(defurl);
+                return;
+            }
             if(defurl.length() == 0){
                 urlError("기본주소를 입력해 주세요.");
             }else if(containsDigit(defurl)) {
@@ -92,6 +100,33 @@ public class FirstTimeActivity extends AppCompatActivity {
                     setResult(RESULT_EULA_AGREE);
                     finish();
                 },null, null));
+    }
+
+    private void acceptDirectUrl(String url){
+        if(pd.isShowing())
+            pd.dismiss();
+        String root = WfwfDomainResolver.toRoot(url);
+        if(WfwfDomainResolver.isWfwfUrl(root)) {
+            p.setWebtoonUrl(root);
+            p.setDefUrl(root + "/cm");
+            p.setUrl(root + "/cm");
+        } else {
+            p.setDefUrl(url);
+            p.setUrl(url);
+        }
+        p.setAutoUrl(false);
+        long time = System.currentTimeMillis();
+        p.getSharedPref().edit().putLong("eula2", time).apply();
+        p.getSharedPref().edit().putBoolean("manamoa", false).apply();
+        Toast.makeText(context, new SimpleDateFormat("yyyy MM dd HH:mm:ss").format(time) + " 遺濡?EULA???숈쓽?덉뒿?덈떎.",Toast.LENGTH_LONG).show();
+        setResult(RESULT_EULA_AGREE);
+        finish();
+    }
+
+    private String trimTrailingSlash(String url){
+        while(url.endsWith("/"))
+            url = url.substring(0, url.length() - 1);
+        return url;
     }
 
     public boolean containsDigit(String s){
