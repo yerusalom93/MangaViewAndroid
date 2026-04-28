@@ -3,6 +3,7 @@ package ml.melun.mangaview.mangaview;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -154,7 +155,7 @@ public class WfwfDomainResolver {
     private static boolean looksLikeWfwf(String body) {
         if(body == null)
             return false;
-        String lower = body.toLowerCase();
+        String lower = body.toLowerCase(Locale.ROOT);
         return lower.contains("webtoon-list")
                 || lower.contains("toon=")
                 || lower.contains("/view?toon=")

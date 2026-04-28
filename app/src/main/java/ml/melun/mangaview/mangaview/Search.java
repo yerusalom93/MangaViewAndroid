@@ -10,6 +10,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 import okhttp3.Response;
@@ -234,7 +235,7 @@ public class Search {
 
     private static String webtoonStatus(String value) {
         if(value == null) return "";
-        String q = value.trim().toLowerCase();
+        String q = value.trim().toLowerCase(Locale.ROOT);
         if(q.equals("연재") || q.equals("연재중") || q.equals("ing") || q.equals("ongoing")) return "/ing";
         if(q.equals("완결") || q.equals("완결웹툰") || q.equals("end") || q.equals("completed") || q.equals("complete")) return "/end";
         return "";
@@ -242,7 +243,7 @@ public class Search {
 
     private static String webtoonDay(String value) {
         if(value == null) return "";
-        String q = value.trim().toLowerCase();
+        String q = value.trim().toLowerCase(Locale.ROOT);
         if(q.equals("월") || q.equals("월요") || q.equals("월요일") || q.equals("mon") || q.equals("monday")) return "mon";
         if(q.equals("화") || q.equals("화요") || q.equals("화요일") || q.equals("tue") || q.equals("tuesday")) return "tue";
         if(q.equals("수") || q.equals("수요") || q.equals("수요일") || q.equals("wed") || q.equals("wednesday")) return "wed";
@@ -256,7 +257,7 @@ public class Search {
 
     private static String comicType(String value) {
         if(value == null) return "";
-        String q = value.trim().toLowerCase();
+        String q = value.trim().toLowerCase(Locale.ROOT);
         if(q.equals("recent") || q.equals("최신")) return "recent";
         if(q.equals("weekly") || q.equals("주간")) return "10";
         if(q.equals("biweekly") || q.equals("격주")) return "11";

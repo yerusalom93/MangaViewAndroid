@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -418,7 +419,7 @@ public class CustomHttpClient {
     }
 
     private boolean looksCacheable(String body) {
-        String lower = body.toLowerCase();
+        String lower = body.toLowerCase(Locale.ROOT);
         return lower.contains("webtoon-list")
                 || lower.contains("searchitem")
                 || lower.contains("toon=")

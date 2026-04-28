@@ -14,9 +14,12 @@ import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class LifecycleTask<Params, Progress, Result> implements DefaultLifecycleObserver {
     public enum Status {
@@ -25,14 +28,26 @@ public abstract class LifecycleTask<Params, Progress, Result> implements Default
         FINISHED
     }
 
-    public static final ExecutorService THREAD_POOL_EXECUTOR = Executors.newCachedThreadPool();
+    private static final int POOL_SIZE = 5;
+    private static final int KEEP_ALIVE_SECONDS = 30;
+    private static final AtomicInteger THREAD_ID = new AtomicInteger(1);
+
+    public static final ExecutorService THREAD_POOL_EXECUTOR = new ThreadPoolExecutor(
+            POOL_SIZE,
+            POOL_SIZE,
+            KEEP_ALIVE_SECONDS,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(),
+            runnable -> new Thread(runnable, "LifecycleTask-" + THREAD_ID.getAndIncrement())
+    );
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
 
     private final Object lifecycleCandidate;
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
     private final AtomicBoolean lifecycleDestroyed = new AtomicBoolean(false);
+    private final AtomicBoolean completed = new AtomicBoolean(false);
     private Lifecycle lifecycle;
-    private Status status = Status.PENDING;
+    private volatile Status status = Status.PENDING;
     private Future<?> future;
 
     protected LifecycleTask() {
@@ -53,9 +68,10 @@ public abstract class LifecycleTask<Params, Progress, Result> implements Default
 
     public boolean cancel(boolean mayInterruptIfRunning) {
         cancelled.set(true);
-        if(future != null)
-            return future.cancel(mayInterruptIfRunning);
-        return true;
+        boolean result = future == null || future.cancel(mayInterruptIfRunning);
+        if(status == Status.RUNNING)
+            MAIN.post(() -> finish(null));
+        return result;
     }
 
     public final LifecycleTask<Params, Progress, Result> execute(Params... params) {
@@ -120,6 +136,8 @@ public abstract class LifecycleTask<Params, Progress, Result> implements Default
     }
 
     private void finish(Result result) {
+        if(!completed.compareAndSet(false, true))
+            return;
         status = Status.FINISHED;
         boolean destroyed = lifecycleDestroyed.get()
                 || lifecycle != null && lifecycle.getCurrentState() == Lifecycle.State.DESTROYED;

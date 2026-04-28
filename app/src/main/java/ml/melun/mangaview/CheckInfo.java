@@ -99,7 +99,7 @@ public class CheckInfo {
         Notice notice;
         protected void onPreExecute() {
             super.onPreExecute();
-            sharedPref.edit().putLong("lastNoticeTime", System.currentTimeMillis()).commit();
+            sharedPref.edit().putLong("lastNoticeTime", System.currentTimeMillis()).apply();
         }
         protected Integer doInBackground(Void... params) {
             //mget all notices
@@ -126,7 +126,7 @@ public class CheckInfo {
         int newVersion = 0;
         JSONObject data;
         protected void onPreExecute() {
-            sharedPref.edit().putLong("lastUpdateTime", System.currentTimeMillis()).commit();
+            sharedPref.edit().putLong("lastUpdateTime", System.currentTimeMillis()).apply();
             super.onPreExecute();
             try {
                 PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
@@ -226,7 +226,7 @@ public class CheckInfo {
                 //add new notice
                 notices.add(notice);
                 //write notices
-                sharedPref.edit().putString("notice", new Gson().toJson(notices)).commit();
+                sharedPref.edit().putString("notice", new Gson().toJson(notices)).apply();
                 showPopup(context,notice.getTitle(),notice.getDate()+"\n\n"+notice.getContent());
             }
 

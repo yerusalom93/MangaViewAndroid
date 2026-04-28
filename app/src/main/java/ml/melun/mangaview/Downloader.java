@@ -38,6 +38,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -547,7 +548,7 @@ public class Downloader extends Service {
     boolean downloadImage(String urlStr, File outputFile, Decoder d) {
         try {
             URL url = new URL(urlStr);
-            if (url.getProtocol().toLowerCase().equals("https")) {
+            if (url.getProtocol().toLowerCase(Locale.ROOT).equals("https")) {
                 HttpsURLConnection init = (HttpsURLConnection) url.openConnection();
                 init.setRequestProperty("Referer", p.getUrl());
                 int responseCode = init.getResponseCode();
@@ -601,7 +602,7 @@ public class Downloader extends Service {
     boolean downloadImage(String urlStr, DocumentFile parent, String name, Decoder d) {
         try {
             URL url = new URL(urlStr);
-            if (url.getProtocol().toLowerCase().equals("https")) {
+            if (url.getProtocol().toLowerCase(Locale.ROOT).equals("https")) {
                 HttpsURLConnection init = (HttpsURLConnection) url.openConnection();
                 init.setRequestProperty("Referer", p.getUrl());
 
@@ -658,7 +659,7 @@ public class Downloader extends Service {
         int filesize;
         try {
             URL url = new URL(urlStr);
-            if(url.getProtocol().toLowerCase().equals("https")) {
+            if(url.getProtocol().toLowerCase(Locale.ROOT).equals("https")) {
                 HttpsURLConnection init = (HttpsURLConnection) url.openConnection();
                 int responseCode = init.getResponseCode();
                 if (responseCode >= 300) {
@@ -705,7 +706,7 @@ public class Downloader extends Service {
         int filesize;
         try {
             URL url = new URL(urlStr);
-            if(url.getProtocol().toLowerCase().equals("https")) {
+            if(url.getProtocol().toLowerCase(Locale.ROOT).equals("https")) {
                 HttpsURLConnection init = (HttpsURLConnection) url.openConnection();
                 int responseCode = init.getResponseCode();
                 if (responseCode >= 300) {
