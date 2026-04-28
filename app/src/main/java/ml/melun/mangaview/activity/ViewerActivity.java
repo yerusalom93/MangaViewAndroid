@@ -96,6 +96,7 @@ public class ViewerActivity extends AppCompatActivity {
     boolean previousEpisodeBoundaryJumpPending = false;
     boolean nextEpisodeBoundaryJumpPending = false;
     private static final int NEXT_EPISODE_PRELOAD_LIMIT = 12;
+    private static final int NEXT_EPISODE_IMAGE_PRELOAD_LIMIT = 4;
     private static final int PREVIOUS_EPISODE_PULL_THRESHOLD_DP = 36;
     float topPullStartY = 0;
     boolean topPullTriggered = false;
@@ -103,6 +104,7 @@ public class ViewerActivity extends AppCompatActivity {
     boolean topPullInProgress = false;
     int previousBoundaryRequestedFromId = -1;
     int nextBoundaryRequestedFromId = -1;
+    int boundaryLoadGeneration = 0;
     boolean previousEpisodePositioning = false;
 
 
@@ -154,10 +156,13 @@ public class ViewerActivity extends AppCompatActivity {
                 p.removeViewerBookmark(curm);
                 Manga target = findPreviousEpisode(curm);
                 if(target != null) {
+                    int requestGeneration = boundaryLoadGeneration;
                     loader = new loadImages(target, m -> {
+                        if(requestGeneration != boundaryLoadGeneration)
+                            return;
                         if (m.getImgs(context).size() > 0) {
                             previousEpisodePositioning = true;
-                            insertMangaWhenIdle(m, () -> callback.prevLoaded(m));
+                            insertMangaWhenIdle(m, requestGeneration, () -> callback.prevLoaded(m));
                         } else {
                             previousEpisodePositioning = false;
                             callback.prevLoaded(m);
@@ -176,17 +181,20 @@ public class ViewerActivity extends AppCompatActivity {
                 p.removeViewerBookmark(curm);
                 Manga target = findNextEpisode(curm);
                 if(target != null) {
+                    int requestGeneration = boundaryLoadGeneration;
                     if(hasLoadedImages(target)) {
                         preloadFirstPages(target);
-                        appendMangaWhenIdle(target, () -> {
+                        appendMangaWhenIdle(target, requestGeneration, () -> {
                             callback.nextLoaded(target);
                             prefetchNextEpisode(target);
                         });
                         return target;
                     }
                     loader = new loadImages(target, m -> {
+                        if(requestGeneration != boundaryLoadGeneration)
+                            return;
                         if (m.getImgs(context).size() > 0) {
-                            appendMangaWhenIdle(m, () -> {
+                            appendMangaWhenIdle(m, requestGeneration, () -> {
                                 callback.nextLoaded(m);
                                 prefetchNextEpisode(m);
                             });
@@ -512,11 +520,13 @@ public class ViewerActivity extends AppCompatActivity {
 
         protected void onPreExecute() {
             super.onPreExecute();
-            if(lockui) lockUi(true);
-            setOnBackPressed(() -> {
-                loadImages.super.cancel(true);
-                finish();
-            });
+            if(lockui) {
+                lockUi(true);
+                setOnBackPressed(() -> {
+                    loadImages.super.cancel(true);
+                    finish();
+                });
+            }
         }
 
         protected Integer doInBackground(Void... params) {
@@ -542,7 +552,7 @@ public class ViewerActivity extends AppCompatActivity {
             if(res == LOAD_CAPTCHA){
                 //캡차 처리 팝업
                 if(lockui) lockUi(false);
-                resetOnBackPressed();
+                if(lockui) resetOnBackPressed();
                 showTokiCaptchaPopup(context, p);
                 return;
             }
@@ -551,7 +561,7 @@ public class ViewerActivity extends AppCompatActivity {
             if (title == null)
                 title = m.getTitle();
             super.onPostExecute(res);
-            resetOnBackPressed();
+            if(lockui) resetOnBackPressed();
             callback.post(m);
         }
 
@@ -561,16 +571,18 @@ public class ViewerActivity extends AppCompatActivity {
             if(loader == this) {
                 loader = null;
                 if(lockui) lockUi(false);
-                resetOnBackPressed();
+                if(lockui) resetOnBackPressed();
             }
         }
     }
 
     private class prefetchImages extends AsyncTask<Void, Void, Integer> {
         Manga target;
+        int generation;
 
-        prefetchImages(Manga target) {
+        prefetchImages(Manga target, int generation) {
             this.target = target;
+            this.generation = generation;
         }
 
         @Override
@@ -584,6 +596,8 @@ public class ViewerActivity extends AppCompatActivity {
         protected void onPostExecute(Integer result) {
             if(nextPrefetcher == this)
                 nextPrefetcher = null;
+            if(generation != boundaryLoadGeneration)
+                return;
             if(isCancelled() || isFinishing() || result == LOAD_CAPTCHA || !hasLoadedImages(target))
                 return;
             preloadFirstPages(target);
@@ -862,7 +876,7 @@ public class ViewerActivity extends AppCompatActivity {
             return;
         if(nextPrefetcher != null)
             nextPrefetcher.cancel(true);
-        nextPrefetcher = new prefetchImages(target);
+        nextPrefetcher = new prefetchImages(target, boundaryLoadGeneration);
         nextPrefetcher.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
@@ -917,7 +931,7 @@ public class ViewerActivity extends AppCompatActivity {
         if(target == null || !target.isOnline())
             return;
         List<String> images = target.getImgs(context);
-        int limit = Math.min(NEXT_EPISODE_PRELOAD_LIMIT, images.size());
+        int limit = Math.min(NEXT_EPISODE_IMAGE_PRELOAD_LIMIT, images.size());
         for(int i = 0; i < limit; i++)
             Glide.with(context)
                     .asBitmap()
@@ -926,11 +940,11 @@ public class ViewerActivity extends AppCompatActivity {
                     .preload();
     }
 
-    private void appendMangaWhenIdle(Manga target, Runnable afterAppend) {
+    private void appendMangaWhenIdle(Manga target, int generation, Runnable afterAppend) {
         if(target == null || strip == null)
             return;
         strip.post(() -> {
-            if(stripAdapter != null && !isFinishing()) {
+            if(stripAdapter != null && !isFinishing() && generation == boundaryLoadGeneration) {
                 if(!stripAdapter.hasMangaLoaded(target)) {
                     stripAdapter.appendManga(target);
                 }
@@ -940,11 +954,11 @@ public class ViewerActivity extends AppCompatActivity {
         });
     }
 
-    private void insertMangaWhenIdle(Manga target, Runnable afterInsert) {
+    private void insertMangaWhenIdle(Manga target, int generation, Runnable afterInsert) {
         if(target == null || strip == null)
             return;
         strip.post(() -> {
-            if(stripAdapter != null && !isFinishing()) {
+            if(stripAdapter != null && !isFinishing() && generation == boundaryLoadGeneration) {
                 if(!stripAdapter.hasMangaLoaded(target)) {
                     int first = manager == null ? RecyclerView.NO_POSITION : manager.findFirstVisibleItemPosition();
                     View firstView = manager == null || first == RecyclerView.NO_POSITION ? null : manager.findViewByPosition(first);
@@ -967,6 +981,7 @@ public class ViewerActivity extends AppCompatActivity {
     }
 
     private void resetBoundaryLoadState() {
+        boundaryLoadGeneration++;
         previousEpisodeBoundaryLoading = false;
         nextEpisodeBoundaryLoading = false;
         previousEpisodeBoundaryJumpPending = false;

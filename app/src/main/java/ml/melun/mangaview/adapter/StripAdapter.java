@@ -70,21 +70,35 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 this.prev = prev;
         }
 
-        @Override
-        public int hashCode() {
-            return (next==null?1:next.getId()) * (prev==null?1:prev.getId());
-        }
-
         public Manga next;
         public Manga prev;
-        boolean nextRequested;
-        boolean prevRequested;
     }
 
     @Override
     public long getItemId(int position) {
         Object o = items.get(position);
-        return o.hashCode();
+        if(o instanceof PageItem)
+            return pageStableId((PageItem)o);
+        if(o instanceof InfoItem)
+            return infoStableId((InfoItem)o);
+        return RecyclerView.NO_ID;
+    }
+
+    private long pageStableId(PageItem item) {
+        long episode = episodeStableId(item.manga);
+        return (episode * 1000003L) ^ (((long)item.index) << 1) ^ item.side;
+    }
+
+    private long infoStableId(InfoItem item) {
+        return Long.MIN_VALUE
+                ^ (episodeStableId(item.prev) * 1000003L)
+                ^ episodeStableId(item.next);
+    }
+
+    private long episodeStableId(Manga manga) {
+        if(manga == null)
+            return 0L;
+        return (((long)manga.getBaseMode()) << 32) ^ (manga.getId() & 0xffffffffL);
     }
 
     public void appendManga(Manga m){
@@ -158,7 +172,9 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     }
 
     private boolean sameManga(Manga a, Manga b) {
-        return a != null && b != null && a.getId() == b.getId();
+        return a != null && b != null
+                && a.getId() == b.getId()
+                && a.getBaseMode() == b.getBaseMode();
     }
 
     public void popFirst(){
@@ -277,33 +293,8 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             ((InfoViewHolder) holder).prevInfo.setText(prev == null ? "첫 화" : prev.getName());
             ((InfoViewHolder) holder).nextInfo.setText(next == null ? "마지막 화" : next.getName());
 
-            ViewerActivity.InfiniteLoadCallback r = new ViewerActivity.InfiniteLoadCallback() {
-                @Override
-                public void prevLoaded(Manga m) {
-                    if(!isInfoHolderStillBound(holder, info))
-                        return;
-                    ((InfoViewHolder) holder).loading.setVisibility(View.INVISIBLE);
-                    ((InfoViewHolder) holder).prevInfo.setText(m==null?"오류":m.getName());
-                }
-
-                @Override
-                public void nextLoaded(Manga m) {
-                    if(!isInfoHolderStillBound(holder, info))
-                        return;
-                    ((InfoViewHolder) holder).loading.setVisibility(View.INVISIBLE);
-                    ((InfoViewHolder) holder).nextInfo.setText(m==null?"오류":m.getName());
-                }
-            };
-
-            Manga m;
             if(pos == 0){
                 return;
-            }else if(shouldAutoLoadFromInfoItem(pos, info)){
-                info.nextRequested = true;
-                ((InfoViewHolder) holder).loading.setVisibility(View.VISIBLE);
-                m = callback.nextEp(r, prev);
-                info.next = m;
-                ((InfoViewHolder) holder).nextInfo.setText(m==null? "마지막 화":"다음 화");
             }
         }
     }
@@ -408,18 +399,6 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         return position != RecyclerView.NO_POSITION
                 && position < items.size()
                 && items.get(position) == item;
-    }
-
-    private boolean isInfoHolderStillBound(RecyclerView.ViewHolder holder, InfoItem item) {
-        int position = holder.getAdapterPosition();
-        return position != RecyclerView.NO_POSITION
-                && position < items.size()
-                && items.get(position) == item;
-    }
-
-    private boolean shouldAutoLoadFromInfoItem(int position, InfoItem info) {
-        // ViewerActivity owns boundary loading so repeated binds cannot enqueue duplicate episodes.
-        return false;
     }
 
     private void preloadAhead(int adapterPosition) {
