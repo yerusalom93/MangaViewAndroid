@@ -36,12 +36,14 @@ public class CustomHttpClient {
     public static final String DEFAULT_COMIC_URL = "https://wfwf449.com/cm";
     public static final String WEBTOON_URL = "https://wfwf449.com";
     private static final long WFWF_DOMAIN_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000L;
+    private static final long WFWF_DOMAIN_FORCE_RETRY_INTERVAL_MS = 60 * 1000L;
     private static final long COOKIE_SYNC_INTERVAL_MS = 30 * 1000L;
     private static final int PAGE_CACHE_MAX_ENTRIES = 80;
     public OkHttpClient client;
     Map<String, String> cookies;
     Map<String, Long> cookieSyncAt;
     Map<String, CachedPage> pageCache;
+    private long wfwfDomainLastForcedRetry = 0;
     private Context context;
     public String agent = "Mozilla/5.0 (Linux; Android 13; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36";
 
@@ -213,6 +215,14 @@ public class CustomHttpClient {
         return ensureWfwfDomain(true);
     }
 
+    private synchronized boolean ensureWfwfDomainForRetry() {
+        long now = System.currentTimeMillis();
+        if(now - wfwfDomainLastForcedRetry < WFWF_DOMAIN_FORCE_RETRY_INTERVAL_MS)
+            return false;
+        wfwfDomainLastForcedRetry = now;
+        return ensureWfwfDomain(true);
+    }
+
     private synchronized boolean ensureWfwfDomain(boolean force) {
         try {
             String webtoonUrl = getWebtoonUrl();
@@ -354,12 +364,28 @@ public class CustomHttpClient {
 //            customCookie.put("PHPSESSID", p.getLogin().cookie);
 //        }
         String baseUrl = getBaseUrl(url);
+        Map<String, String> headers = buildHeaders(baseUrl, customCookie);
+
+        Response response = get(baseUrl + url, headers);
+        if(shouldRetryWithResolvedDomain(response)) {
+            if(response != null)
+                response.close();
+            ensureWfwfDomainForRetry();
+            baseUrl = getBaseUrl(url);
+            headers = buildHeaders(baseUrl, customCookie);
+            response = get(baseUrl + url, headers);
+        }
+        return response;
+    }
+
+    private Map<String, String> buildHeaders(String baseUrl, Map<String, String> customCookie) {
         syncCookiesFromWebView(baseUrl);
         Map<String, String> cookie;
         synchronized (this) {
             cookie = new HashMap<>(this.cookies);
         }
-        cookie.putAll(customCookie);
+        if(customCookie != null)
+            cookie.putAll(customCookie);
 
         StringBuilder cbuilder = new StringBuilder();
         for(String key : cookie.keySet()){
@@ -375,17 +401,7 @@ public class CustomHttpClient {
         headers.put("Cookie", cbuilder.toString());
         headers.put("User-Agent", agent);
         headers.put("Referer", baseUrl);
-
-        Response response = get(baseUrl + url, headers);
-        if(shouldRetryWithResolvedDomain(response)) {
-            if(response != null)
-                response.close();
-            ensureWfwfDomain(true);
-            baseUrl = getBaseUrl(url);
-            headers.put("Referer", baseUrl);
-            response = get(baseUrl + url, headers);
-        }
-        return response;
+        return headers;
     }
 
     private boolean shouldRetryWithResolvedDomain(Response response) {

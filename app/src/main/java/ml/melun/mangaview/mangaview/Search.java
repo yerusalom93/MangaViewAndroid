@@ -20,12 +20,14 @@ import static ml.melun.mangaview.mangaview.MTitle.baseModeStr;
 
 public class Search {
     private static final long PAGE_CACHE_TTL_MS = 2 * 60 * 1000L;
+    private static final int MAX_TIMEOUT_RETRIES = 2;
 
     int baseMode;
     private final String query;
     Boolean last = false;
     int mode;
     int page = 1;
+    int timeoutRetries = 0;
     private ArrayList<Title> result;
 
     public Search(String q, int mode, int baseMode) {
@@ -74,7 +76,10 @@ public class Search {
                 if(body.contains("Connect Error: Connection timed out")){
                     response.close();
                     page--;
-                    return fetch(client);
+                    if(timeoutRetries++ < MAX_TIMEOUT_RETRIES)
+                        return fetch(client);
+                    timeoutRetries = 0;
+                    return 1;
                 }
                 Document d = Jsoup.parse(body);
                 d.outputSettings().charset(StandardCharsets.UTF_8);
@@ -82,6 +87,7 @@ public class Search {
                 Elements titles = d.select("div.list-item");
 
                 if(response.code()>=400){
+                    response.close();
                     return 1;
                 } else if (titles.size() < 1)
                     last = true;
@@ -120,9 +126,11 @@ public class Search {
 
                 if(result.size()==0)
                     page--;
+                timeoutRetries = 0;
 
             } catch (Exception e) {
                 page--;
+                timeoutRetries = 0;
                 e.printStackTrace();
                 return 1;
             }

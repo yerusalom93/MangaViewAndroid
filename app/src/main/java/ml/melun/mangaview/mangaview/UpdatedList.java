@@ -13,10 +13,13 @@ import okhttp3.Response;
 
 
 public class UpdatedList {
+    private static final int MAX_TIMEOUT_RETRIES = 2;
+
     Boolean last = false;
     ArrayList<UpdatedManga> result;
     int page = 1;
     int baseMode;
+    int timeoutRetries = 0;
 
     public UpdatedList(int baseMode){
         this.baseMode = baseMode;
@@ -37,7 +40,11 @@ public class UpdatedList {
                 if(body.contains("Connect Error: Connection timed out")){
                     //adblock : try again
                     response.close();
-                    fetch(client);
+                    page--;
+                    if(timeoutRetries++ < MAX_TIMEOUT_RETRIES)
+                        fetch(client);
+                    else
+                        timeoutRetries = 0;
                     return;
                 }
                 Document document = Jsoup.parse(body);
@@ -80,8 +87,10 @@ public class UpdatedList {
                     }
                 }
                 response.close();
+                timeoutRetries = 0;
             } catch (Exception e) {
                 e.printStackTrace();
+                timeoutRetries = 0;
                 page--;
             }
         }

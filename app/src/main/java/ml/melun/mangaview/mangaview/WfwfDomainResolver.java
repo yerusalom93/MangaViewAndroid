@@ -87,25 +87,26 @@ public class WfwfDomainResolver {
         try {
             for(int start = 0; start < candidates.size(); start += PARALLEL_PROBES) {
                 int end = Math.min(start + PARALLEL_PROBES, candidates.size());
-                ArrayList<Future<Boolean>> futures = new ArrayList<>();
-                ExecutorCompletionService<Boolean> completionService = new ExecutorCompletionService<>(executor);
+                ArrayList<Future<String>> futures = new ArrayList<>();
+                ExecutorCompletionService<String> completionService = new ExecutorCompletionService<>(executor);
                 for(int i = start; i < end; i++) {
                     final int number = candidates.get(i);
-                    futures.add(completionService.submit(new Callable<Boolean>() {
+                    futures.add(completionService.submit(new Callable<String>() {
                         @Override
-                        public Boolean call() {
-                            return isAlive(client, "https://wfwf" + number + ".com", headers);
+                        public String call() {
+                            String root = "https://wfwf" + number + ".com";
+                            return isAlive(client, root, headers) ? root : null;
                         }
                     }));
                 }
 
-                for(int i = start; i < end; i++)
-                    completionService.take();
-
-                for(int i = 0; i < futures.size(); i++) {
+                for(int i = start; i < end; i++) {
                     try {
-                        if(futures.get(i).get())
-                            return "https://wfwf" + candidates.get(start + i) + ".com";
+                        String resolved = completionService.take().get();
+                        if(resolved != null) {
+                            cancelAll(futures);
+                            return resolved;
+                        }
                     } catch (Exception ignored) {
                     }
                 }
@@ -115,6 +116,11 @@ public class WfwfDomainResolver {
             executor.shutdownNow();
         }
         return null;
+    }
+
+    private static void cancelAll(List<? extends Future<?>> futures) {
+        for(Future<?> future : futures)
+            future.cancel(true);
     }
 
     private static void add(List<Integer> numbers, Set<Integer> seen, int number) {

@@ -302,96 +302,121 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
 
     void glideBind(ImgViewHolder holder, int pos){
+        clearImageTarget(holder);
         PageItem item = ((PageItem)items.get(pos));
         Object url = getImageModel(item);
         holder.frame.setMinimumHeight(Math.max(width, 1));
         if (autoCut) {
+            CustomTarget<Bitmap> imageTarget = new CustomTarget<Bitmap>() {
+                @Override
+                public void onResourceReady(@NonNull Bitmap bitmap, Transition<? super Bitmap> transition) {
+                    if(!isActiveHolder(holder, item, this))
+                        return;
+                    holder.frame.setMinimumHeight(0);
+                    bitmap = d.decode(bitmap, width);
+                    int width = bitmap.getWidth();
+                    int height = bitmap.getHeight();
+                    if (width > height) {
+                        if (item.side == PageItem.FIRST) {
+                            if (reverse)
+                                holder.frame.setImageBitmap(Bitmap.createBitmap(bitmap, 0, 0, width / 2, height));
+                            else
+                                holder.frame.setImageBitmap(Bitmap.createBitmap(bitmap, width / 2, 0, width / 2, height));
+                        } else {
+                            if (reverse)
+                                holder.frame.setImageBitmap(Bitmap.createBitmap(bitmap, width / 2, 0, width / 2, height));
+                            else
+                                holder.frame.setImageBitmap(Bitmap.createBitmap(bitmap, 0, 0, width / 2, height));
+                        }
+                    } else {
+                        if (item.side == PageItem.FIRST) {
+                            holder.frame.setImageBitmap(bitmap);
+                        } else {
+                            holder.frame.setImageBitmap(Bitmap.createBitmap(bitmap.getWidth(), 1, Bitmap.Config.ARGB_8888));
+                        }
+                    }
+                    holder.refresh.setVisibility(View.GONE);
+                }
+
+                @Override
+                public void onLoadCleared(@Nullable Drawable placeholder) {
+                    if(holder.imageTarget != this)
+                        return;
+                    holder.frame.setMinimumHeight(Math.max(width, 1));
+                    holder.frame.setImageDrawable(placeholder);
+                    holder.refresh.setVisibility(View.VISIBLE);
+                }
+
+                @Override
+                public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                    if(holder.imageTarget != this)
+                        return;
+                    holder.frame.setMinimumHeight(Math.max(width, 1));
+                    holder.frame.setImageResource(R.drawable.placeholder);
+                    holder.refresh.setVisibility(View.VISIBLE);
+                }
+            };
+            holder.imageTarget = imageTarget;
             //set image to holder view
             Glide.with(holder.frame)
                     .asBitmap()
                     .diskCacheStrategy(DiskCacheStrategy.DATA)
                     .load(url)
                     .placeholder(R.drawable.placeholder)
-                    .into(new CustomTarget<Bitmap>() {
-                        @Override
-                        public void onResourceReady(@NonNull Bitmap bitmap, Transition<? super Bitmap> transition) {
-                            if(!isHolderStillBound(holder, item))
-                                return;
-                            holder.frame.setMinimumHeight(0);
-                            bitmap = d.decode(bitmap, width);
-                            int width = bitmap.getWidth();
-                            int height = bitmap.getHeight();
-                            if (width > height) {
-                                if (item.side == PageItem.FIRST) {
-                                    if (reverse)
-                                        holder.frame.setImageBitmap(Bitmap.createBitmap(bitmap, 0, 0, width / 2, height));
-                                    else
-                                        holder.frame.setImageBitmap(Bitmap.createBitmap(bitmap, width / 2, 0, width / 2, height));
-                                } else {
-                                    if (reverse)
-                                        holder.frame.setImageBitmap(Bitmap.createBitmap(bitmap, width / 2, 0, width / 2, height));
-                                    else
-                                        holder.frame.setImageBitmap(Bitmap.createBitmap(bitmap, 0, 0, width / 2, height));
-                                }
-                            } else {
-                                if (item.side == PageItem.FIRST) {
-                                    holder.frame.setImageBitmap(bitmap);
-                                } else {
-                                    holder.frame.setImageBitmap(Bitmap.createBitmap(bitmap.getWidth(), 1, Bitmap.Config.ARGB_8888));
-                                }
-                            }
-                            holder.refresh.setVisibility(View.GONE);
-                        }
-
-                        @Override
-                        public void onLoadCleared(@Nullable Drawable placeholder) {
-                            holder.frame.setMinimumHeight(Math.max(width, 1));
-                            holder.frame.setImageDrawable(placeholder);
-                            holder.refresh.setVisibility(View.VISIBLE);
-                        }
-
-                        @Override
-                        public void onLoadFailed(@Nullable Drawable errorDrawable) {
-                            holder.frame.setMinimumHeight(Math.max(width, 1));
-                            holder.frame.setImageResource(R.drawable.placeholder);
-                            holder.refresh.setVisibility(View.VISIBLE);
-                        }
-                    });
+                    .into(imageTarget);
         } else {
+            CustomTarget<Bitmap> imageTarget = new CustomTarget<Bitmap>() {
+                @Override
+                public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                    if(!isActiveHolder(holder, item, this))
+                        return;
+                    holder.frame.setMinimumHeight(0);
+                    resource = d.decode(resource, width);
+                    holder.frame.setImageBitmap(resource);
+                    holder.refresh.setVisibility(View.GONE);
+                }
+
+                @Override
+                public void onLoadCleared(@Nullable Drawable placeholder) {
+                    if(holder.imageTarget != this)
+                        return;
+                    holder.frame.setMinimumHeight(Math.max(width, 1));
+                    holder.frame.setImageDrawable(placeholder);
+                    holder.refresh.setVisibility(View.VISIBLE);
+                }
+
+                @Override
+                public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                    if(holder.imageTarget != this)
+                        return;
+                    holder.frame.setMinimumHeight(Math.max(width, 1));
+                    holder.frame.setImageResource(R.drawable.placeholder);
+                    holder.refresh.setVisibility(View.VISIBLE);
+                }
+            };
+            holder.imageTarget = imageTarget;
             Glide.with(holder.frame)
                     .asBitmap()
                     .diskCacheStrategy(DiskCacheStrategy.DATA)
                     .load(url)
-                    .into(new CustomTarget<Bitmap>() {
-                        @Override
-                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                            if(!isHolderStillBound(holder, item))
-                                return;
-                            holder.frame.setMinimumHeight(0);
-                            resource = d.decode(resource, width);
-                            holder.frame.setImageBitmap(resource);
-                            holder.refresh.setVisibility(View.GONE);
-                        }
-
-                        @Override
-                        public void onLoadCleared(@Nullable Drawable placeholder) {
-                            holder.frame.setMinimumHeight(Math.max(width, 1));
-                            holder.frame.setImageDrawable(placeholder);
-                            holder.refresh.setVisibility(View.VISIBLE);
-                        }
-
-                        @Override
-                        public void onLoadFailed(@Nullable Drawable errorDrawable) {
-                            holder.frame.setMinimumHeight(Math.max(width, 1));
-                            holder.frame.setImageResource(R.drawable.placeholder);
-                            holder.refresh.setVisibility(View.VISIBLE);
-                        }
-                    });
+                    .into(imageTarget);
         }
     }
 
     private Object getImageModel(PageItem item) {
         return item.manga.isOnline() ? getGlideUrl(item.img, item.manga.getBaseMode()) : item.img;
+    }
+
+    private void clearImageTarget(ImgViewHolder holder) {
+        if(holder.imageTarget == null)
+            return;
+        CustomTarget<Bitmap> target = holder.imageTarget;
+        holder.imageTarget = null;
+        Glide.with(holder.frame).clear(target);
+    }
+
+    private boolean isActiveHolder(ImgViewHolder holder, PageItem item, CustomTarget<Bitmap> target) {
+        return holder.imageTarget == target && isHolderStillBound(holder, item);
     }
 
     private boolean isHolderStillBound(ImgViewHolder holder, PageItem item) {
@@ -459,6 +484,18 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
+    @Override
+    public void onViewRecycled(@NonNull RecyclerView.ViewHolder holder) {
+        super.onViewRecycled(holder);
+        if(holder instanceof ImgViewHolder) {
+            ImgViewHolder imageHolder = (ImgViewHolder) holder;
+            clearImageTarget(imageHolder);
+            imageHolder.frame.setMinimumHeight(Math.max(width, 1));
+            imageHolder.frame.setImageResource(R.drawable.placeholder);
+            imageHolder.refresh.setVisibility(View.VISIBLE);
+        }
+    }
+
 //
 //    @Override
 //    public void onViewDetachedFromWindow(@NonNull RecyclerView.ViewHolder holder) {
@@ -480,6 +517,7 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     public class ImgViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
         ImageView frame;
         ImageButton refresh;
+        CustomTarget<Bitmap> imageTarget;
         ImgViewHolder(View itemView) {
             super(itemView);
             frame = itemView.findViewById(R.id.frame);
