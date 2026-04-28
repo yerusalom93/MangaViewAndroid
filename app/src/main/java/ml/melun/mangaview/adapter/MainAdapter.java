@@ -2,7 +2,7 @@ package ml.melun.mangaview.adapter;
 
 import android.content.Context;
 import android.graphics.Color;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.cardview.widget.CardView;
@@ -96,7 +96,7 @@ public class MainAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     public void fetch(){
         //fetch main page data
         uadapter.setLoad();
-        new MainFetcher().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        new MainFetcher().executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
     }
 
     @Override
@@ -385,7 +385,7 @@ public class MainAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void clickedCategoryPath(String title, String path);
     }
 
-    private class MainFetcher extends AsyncTask<Void, Integer, MainPage> {
+    private class MainFetcher extends LifecycleTask<Void, Integer, MainPage> {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();

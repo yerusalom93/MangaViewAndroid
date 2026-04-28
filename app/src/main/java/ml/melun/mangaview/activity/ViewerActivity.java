@@ -4,7 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -168,7 +168,7 @@ public class ViewerActivity extends AppCompatActivity {
                             callback.prevLoaded(m);
                         }
                     },false);
-                    loader.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    loader.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
                     return target;
                 }else{
                     callback.prevLoaded(null);
@@ -203,7 +203,7 @@ public class ViewerActivity extends AppCompatActivity {
                             prefetchNextEpisode(m);
                         }
                     },false);
-                    loader.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    loader.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
                     return target;
                 }else{
                     callback.nextLoaded(null);
@@ -337,7 +337,7 @@ public class ViewerActivity extends AppCompatActivity {
         if(loader != null)
             loader.cancel(true);
         loader = new loadImages(m, callback,true);
-        loader.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        loader.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
     }
 
     void loadManga(Manga m){
@@ -507,7 +507,7 @@ public class ViewerActivity extends AppCompatActivity {
 
 
 
-    private class loadImages extends AsyncTask<Void,String,Integer> {
+    private class loadImages extends LifecycleTask<Void,String,Integer> {
         boolean lockui;
         LoadMangaCallback callback;
         Manga m;
@@ -576,7 +576,7 @@ public class ViewerActivity extends AppCompatActivity {
         }
     }
 
-    private class prefetchImages extends AsyncTask<Void, Void, Integer> {
+    private class prefetchImages extends LifecycleTask<Void, Void, Integer> {
         Manga target;
         int generation;
 
@@ -877,7 +877,7 @@ public class ViewerActivity extends AppCompatActivity {
         if(nextPrefetcher != null)
             nextPrefetcher.cancel(true);
         nextPrefetcher = new prefetchImages(target, boundaryLoadGeneration);
-        nextPrefetcher.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        nextPrefetcher.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
     }
 
     private Manga findNextEpisode(Manga current) {

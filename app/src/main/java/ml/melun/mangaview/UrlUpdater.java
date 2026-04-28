@@ -1,7 +1,7 @@
 package ml.melun.mangaview;
 
 import android.content.Context;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 import android.widget.Toast;
 
 import java.util.HashMap;
@@ -14,7 +14,7 @@ import ml.melun.mangaview.mangaview.WfwfDomainResolver;
 import static ml.melun.mangaview.MainApplication.httpClient;
 import static ml.melun.mangaview.MainApplication.p;
 
-public class UrlUpdater extends AsyncTask<Void, Void, Boolean> {
+public class UrlUpdater extends LifecycleTask<Void, Void, Boolean> {
     String result;
     String fetchUrl;
     boolean silent = false;

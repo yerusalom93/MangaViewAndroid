@@ -2,7 +2,7 @@ package ml.melun.mangaview.activity;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 import com.google.android.material.tabs.TabLayout;
 
 import androidx.annotation.NonNull;
@@ -121,7 +121,7 @@ public class CommentsActivity extends AppCompatActivity {
               submit.setEnabled(false);
               input.setEnabled(false);
               new submitComment(login, id, input.getText().toString(), p.getUrl())
-                  .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                  .executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
             }
           });
     } else {
@@ -158,7 +158,7 @@ public class CommentsActivity extends AppCompatActivity {
     }
   }
 
-  private class submitComment extends AsyncTask<Void, Void, Integer> {
+  private class submitComment extends LifecycleTask<Void, Void, Integer> {
     Login login;
     int id;
     String baseUrl;

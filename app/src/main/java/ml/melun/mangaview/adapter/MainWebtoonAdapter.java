@@ -3,7 +3,7 @@ package ml.melun.mangaview.adapter;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -76,7 +76,7 @@ public class MainWebtoonAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         if(fetcher != null)
             fetcher.cancel(true);
         fetcher = new Fetcher();
-        fetcher.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        fetcher.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
     }
 
     public void cancelFetch() {
@@ -447,7 +447,7 @@ public class MainWebtoonAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         }
     }
 
-    private class Fetcher extends AsyncTask<Void, SectionResult, Boolean> {
+    private class Fetcher extends LifecycleTask<Void, SectionResult, Boolean> {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();

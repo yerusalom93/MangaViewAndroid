@@ -2,7 +2,7 @@ package ml.melun.mangaview.activity;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
@@ -103,11 +103,11 @@ public class TagSearchActivity extends AppCompatActivity {
             uadapter = new UpdatedAdapter(context);
             updated = new UpdatedList(p.getBaseMode());
             getUpdated gu = new getUpdated();
-            gu.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            gu.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
             swipe.setOnRefreshListener(direction -> {
                  if (!updated.isLast()) {
                     getUpdated gu1 = new getUpdated();
-                    gu1.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    gu1.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
                 } else swipe.setRefreshing(false);
             });
 
@@ -115,11 +115,11 @@ public class TagSearchActivity extends AppCompatActivity {
             adapter = new TitleAdapter(context);
             bookmark = new Bookmark();
             getBookmarks gb = new getBookmarks();
-            gb.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            gb.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
             swipe.setOnRefreshListener(direction -> {
                 if (bookmark.isLast()) {
                     getBookmarks gb1 = new getBookmarks();
-                    gb1.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    gb1.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
                 } else swipe.setRefreshing(false);
             });
 
@@ -127,11 +127,11 @@ public class TagSearchActivity extends AppCompatActivity {
             adapter = new TitleAdapter(context);
             search = new Search(query,mode,baseMode);
             searchManga sm = new searchManga();
-            sm.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            sm.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
             swipe.setOnRefreshListener(direction -> {
                 if (!search.isLast()) {
                     searchManga sm1 = new searchManga();
-                    sm1.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    sm1.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
                 } else swipe.setRefreshing(false);
             });
         }
@@ -145,7 +145,7 @@ public class TagSearchActivity extends AppCompatActivity {
     }
 
 
-    private class getBookmarks extends AsyncTask<Void, Void, Integer>{
+    private class getBookmarks extends LifecycleTask<Void, Void, Integer>{
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -201,7 +201,7 @@ public class TagSearchActivity extends AppCompatActivity {
     }
 
 
-    private class searchManga extends AsyncTask<String,String,Integer> {
+    private class searchManga extends LifecycleTask<String,String,Integer> {
         protected void onPreExecute(){
             super.onPreExecute();
         }
@@ -252,7 +252,7 @@ public class TagSearchActivity extends AppCompatActivity {
         }
     }
 
-    private class getUpdated extends AsyncTask<String,String,String> {
+    private class getUpdated extends LifecycleTask<String,String,String> {
         protected void onPreExecute(){
             super.onPreExecute();
         }

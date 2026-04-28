@@ -7,7 +7,7 @@ import android.content.Context;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 
 import android.os.Build;
 import android.os.Bundle;
@@ -87,7 +87,7 @@ public class LoginActivity extends AppCompatActivity {
                 httpClient.resetCookie();
                 mLoginFormView.setVisibility(View.VISIBLE);
                 accountPanel.setVisibility(View.GONE);
-                new PreLoginTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                new PreLoginTask().executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
             });
 
             this.findViewById(R.id.bookmark_list_button).setOnClickListener(view -> {
@@ -99,7 +99,7 @@ public class LoginActivity extends AppCompatActivity {
             this.findViewById(R.id.bookmark_import_button).setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    new AsyncTask<Void, Void, Integer>(){
+                    new LifecycleTask<Void, Void, Integer>(){
                         ProgressDialog pd;
                         @Override
                         protected void onPreExecute() {
@@ -127,11 +127,11 @@ public class LoginActivity extends AppCompatActivity {
                         protected Integer doInBackground(Void... voids) {
                             return importBookmark(p, httpClient);
                         }
-                    }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    }.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
                 }
             });
         }else{
-            new PreLoginTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            new PreLoginTask().executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
         }
 
 
@@ -201,7 +201,7 @@ public class LoginActivity extends AppCompatActivity {
             // perform the user login attempt.
             showProgress(true);
             mAuthTask = new UserLoginTask(email, password, answer);
-            mAuthTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            mAuthTask.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
         }
     }
 
@@ -248,7 +248,7 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    public class PreLoginTask extends AsyncTask<Void, Void, Void>{
+    public class PreLoginTask extends LifecycleTask<Void, Void, Void>{
         byte[] image;
         @Override
         protected void onPreExecute() {
@@ -276,7 +276,7 @@ public class LoginActivity extends AppCompatActivity {
      * Represents an asynchronous login/registration task used to authenticate
      * the user.
      */
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
+    public class UserLoginTask extends LifecycleTask<Void, Void, Boolean> {
         String answer;
         UserLoginTask(String email, String password, String answer) {
             login.set(email, password);

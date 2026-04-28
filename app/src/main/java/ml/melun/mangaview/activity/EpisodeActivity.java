@@ -3,7 +3,7 @@ package ml.melun.mangaview.activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -154,7 +154,7 @@ public class EpisodeActivity extends AppCompatActivity {
             mode = 0;
             fab_container.setVisibility(View.GONE);
             getEpisodes g = new getEpisodes();
-            g.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            g.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
         }else{
             //offline title
             //initialize eps list
@@ -304,7 +304,7 @@ public class EpisodeActivity extends AppCompatActivity {
             @Override
             public void onBookmarkClick() {
                 if(mode == 0 && p.getLogin() != null && p.getLogin().isValid()) {
-                    new ToggleBookmark().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    new ToggleBookmark().executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
                 }else {
                     Toast.makeText(context, "로그인이 필요한 기능입니다.", Toast.LENGTH_SHORT).show();
                 }
@@ -350,7 +350,7 @@ public class EpisodeActivity extends AppCompatActivity {
         });
     }
 
-    private class ToggleBookmark extends AsyncTask<Void, Void, Boolean> {
+    private class ToggleBookmark extends LifecycleTask<Void, Void, Boolean> {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -371,7 +371,7 @@ public class EpisodeActivity extends AppCompatActivity {
         }
     }
 
-    private class getEpisodes extends AsyncTask<Void,Void,Integer> {
+    private class getEpisodes extends LifecycleTask<Void,Void,Integer> {
         protected void onPreExecute() {
             super.onPreExecute();
             progress.setVisibility(View.VISIBLE);

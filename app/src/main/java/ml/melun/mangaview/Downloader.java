@@ -11,7 +11,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 import android.os.Build;
 import android.os.IBinder;
 import androidx.annotation.Nullable;
@@ -161,9 +161,9 @@ public class Downloader extends Service {
         titles.add(title);
         selected.add(selection);
         updateNotification("");
-        if(dt.getStatus() == AsyncTask.Status.PENDING || dt.getStatus() == AsyncTask.Status.FINISHED) {
+        if(dt.getStatus() == LifecycleTask.Status.PENDING || dt.getStatus() == LifecycleTask.Status.FINISHED) {
             dt = new downloadTitle();
-            dt.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            dt.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
         }else{
             running = true;
         }
@@ -172,9 +172,9 @@ public class Downloader extends Service {
     public void update(String url){
         //saves to android default download dir
         if(d==null) d = new Download();
-        if(d.getStatus() == AsyncTask.Status.PENDING || d.getStatus() == AsyncTask.Status.FINISHED) {
+        if(d.getStatus() == LifecycleTask.Status.PENDING || d.getStatus() == LifecycleTask.Status.FINISHED) {
             d = new Download();
-            d.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, url);
+            d.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR, url);
         }else{
             updateDownloading = true;
             Toast.makeText(serviceContext, "이미 다운로드 중 입니다.", Toast.LENGTH_SHORT).show();
@@ -183,7 +183,7 @@ public class Downloader extends Service {
 
 
 
-    private class Download extends AsyncTask<String,Integer,Integer> {
+    private class Download extends LifecycleTask<String,Integer,Integer> {
         File downloaded;
         int prevProgress = 0;
         @Override
@@ -273,7 +273,7 @@ public class Downloader extends Service {
         }
     }
 
-    private class downloadTitle extends AsyncTask<Void,Void,Integer> {
+    private class downloadTitle extends LifecycleTask<Void,Void,Integer> {
         protected void onPreExecute() {
             super.onPreExecute();
             cookies = new HashMap<>();

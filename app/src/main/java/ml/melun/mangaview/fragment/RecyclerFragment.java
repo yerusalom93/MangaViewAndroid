@@ -5,7 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -179,12 +179,12 @@ public class RecyclerFragment extends Fragment {
             titleAdapter.setResume(false);
             titleAdapter.setForceThumbnail(true);
             titleAdapter.clearData();
-            new OfflineReader().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            new OfflineReader().executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
         }
     }
 
 
-    public class OfflineReader extends AsyncTask<Void,Void,Integer>{
+    public class OfflineReader extends LifecycleTask<Void,Void,Integer>{
         List<Title> titles;
         @Override
         protected void onPostExecute(Integer integer) {

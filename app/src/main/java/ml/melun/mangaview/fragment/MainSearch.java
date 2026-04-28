@@ -1,7 +1,7 @@
 package ml.melun.mangaview.fragment;
 
 import android.content.Intent;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -121,7 +121,7 @@ public class MainSearch extends Fragment {
                 if (!search.isLast()) {
                     if(searchTask == null) {
                         searchTask = new SearchManga(search);
-                        searchTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                        searchTask.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
                     }
                 } else swipe.setRefreshing(false);
             }
@@ -157,7 +157,7 @@ public class MainSearch extends Fragment {
             if(searchTask != null)
                 searchTask.cancel(true);
             searchTask = new SearchManga(search);
-            searchTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            searchTask.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
         }
     }
 
@@ -176,7 +176,7 @@ public class MainSearch extends Fragment {
         super.onDestroyView();
     }
 
-    private class SearchManga extends AsyncTask<String,String,Integer>{
+    private class SearchManga extends LifecycleTask<String,String,Integer>{
         private final Search targetSearch;
 
         SearchManga(Search targetSearch) {

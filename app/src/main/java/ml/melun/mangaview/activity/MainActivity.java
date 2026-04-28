@@ -13,7 +13,7 @@ import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.net.Uri;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -248,7 +248,7 @@ public class MainActivity extends AppCompatActivity
         // url updater
         if(p.getAutoUrl()) {
             ((MainMain)fragments[0]).setWait(true);
-            new UrlUpdater(context, false, ((MainMain)fragments[0]).getCallback(), p.getDefUrl()).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            new UrlUpdater(context, false, ((MainMain)fragments[0]).getCallback(), p.getDefUrl()).executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
         }
 
         toolbar = (Toolbar) findViewById(R.id.toolbar);

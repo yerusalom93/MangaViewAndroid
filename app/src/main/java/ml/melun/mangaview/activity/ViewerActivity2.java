@@ -10,7 +10,7 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -259,7 +259,7 @@ public class ViewerActivity2 extends AppCompatActivity {
             //if online
             //fetch imgs
             loadImages l = new loadImages();
-            l.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            l.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
         }
 
         nextPageBtn.setOnClickListener(v -> {
@@ -773,7 +773,7 @@ public class ViewerActivity2 extends AppCompatActivity {
         return super.dispatchKeyEvent(event);
     }
 
-    private class loadImages extends AsyncTask<Void,String,Integer> {
+    private class loadImages extends LifecycleTask<Void,String,Integer> {
         protected void onProgressUpdate(String... values) {
             pd.setMessage(values[0]);
         }
@@ -894,7 +894,7 @@ public class ViewerActivity2 extends AppCompatActivity {
     public void refresh(){
         captchaChecked = false;
         loadImages l = new loadImages();
-        l.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        l.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
     }
 
     public void refreshToolbar(){

@@ -7,7 +7,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 import android.os.Build;
 import androidx.appcompat.app.AlertDialog;
 import android.widget.Toast;
@@ -62,13 +62,15 @@ public class CheckInfo {
         }
         Long lastUpdateTime = sharedPref.getLong("lastUpdateTime", 0);
         Long updateCycle = sharedPref.getLong("updateCycle",900000); // def cycle = 15min
-        if(uc.getStatus()== AsyncTask.Status.RUNNING) {
+        if(uc.getStatus()== LifecycleTask.Status.RUNNING) {
             if(!silent) Toast.makeText(context, "이미 실행중입니다. 잠시후에 다시 시도해 주세요",Toast.LENGTH_SHORT).show();
             return false;
         }
         else{
-            if ((System.currentTimeMillis()>lastUpdateTime + updateCycle) || force)
-                uc.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            if ((System.currentTimeMillis()>lastUpdateTime + updateCycle) || force) {
+                uc = new updateCheck();
+                uc.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
+            }
             return true;
         }
     }
@@ -79,19 +81,21 @@ public class CheckInfo {
         }
         Long lastUpdateTime = sharedPref.getLong("lastNoticeTime", 0);
         Long updateCycle = sharedPref.getLong("noticeCycle",900000); // def cycle = 15min
-        if (nc.getStatus() == AsyncTask.Status.RUNNING){
+        if (nc.getStatus() == LifecycleTask.Status.RUNNING){
             if(!silent) Toast.makeText(context, "이미 실행중입니다. 잠시후에 다시 시도해 주세요",Toast.LENGTH_SHORT).show();
             return false;
         }
         else {
-            if ((System.currentTimeMillis()>lastUpdateTime + updateCycle) || force)
-                nc.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            if ((System.currentTimeMillis()>lastUpdateTime + updateCycle) || force) {
+                nc = new noticeCheck();
+                nc.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
+            }
             return true;
         }
     }
 
 
-    private class noticeCheck extends AsyncTask<Void, Void, Integer> {
+    private class noticeCheck extends LifecycleTask<Void, Void, Integer> {
         Notice notice;
         protected void onPreExecute() {
             super.onPreExecute();
@@ -117,7 +121,7 @@ public class CheckInfo {
         }
     }
 
-    public class updateCheck extends AsyncTask<Void, Integer, Integer> {
+    public class updateCheck extends LifecycleTask<Void, Integer, Integer> {
         int version = 0;
         int newVersion = 0;
         JSONObject data;

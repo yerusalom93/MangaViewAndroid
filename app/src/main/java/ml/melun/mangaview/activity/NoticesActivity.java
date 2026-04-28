@@ -2,7 +2,7 @@ package ml.melun.mangaview.activity;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
+import ml.melun.mangaview.task.LifecycleTask;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
@@ -63,10 +63,10 @@ public class NoticesActivity extends AppCompatActivity {
         progress.setVisibility(View.VISIBLE);
         swipe.setOnRefreshListener(direction -> {
             getNotices gn = new getNotices();
-            gn.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            gn.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
         });
         getNotices gn = new getNotices();
-        gn.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        gn.executeOnExecutor(LifecycleTask.THREAD_POOL_EXECUTOR);
     }
 
     void showNotice(Notice notice){
@@ -108,7 +108,7 @@ public class NoticesActivity extends AppCompatActivity {
 
     }
 
-    private class getNotices extends AsyncTask<Void, Void, Integer> {
+    private class getNotices extends LifecycleTask<Void, Void, Integer> {
         List<Notice> loaded;
         protected void onPreExecute() {
             super.onPreExecute();
