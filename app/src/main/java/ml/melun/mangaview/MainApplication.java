@@ -8,7 +8,6 @@ import androidx.multidex.MultiDexApplication;
 import org.acra.ACRA;
 import org.acra.config.CoreConfigurationBuilder;
 import org.acra.config.DialogConfigurationBuilder;
-import org.acra.config.MailSenderConfigurationBuilder;
 import org.acra.data.StringFormat;
 
 import ml.melun.mangaview.mangaview.CustomHttpClient;
@@ -28,7 +27,6 @@ public class MainApplication extends MultiDexApplication {
                 .withBuildConfigClass(BuildConfig.class)
                 .withReportFormat(StringFormat.JSON)
                 .withPluginConfigurations(
-                        new MailSenderConfigurationBuilder().withMailTo("mangaview@protonmail.com").build(),
                         new DialogConfigurationBuilder()
                                 .withTitle("MangaView")
                                 .withText(getResources().getText(R.string.acra_dialog_text).toString())
