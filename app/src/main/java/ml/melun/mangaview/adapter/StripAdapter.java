@@ -186,10 +186,11 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             }
         }
         if (size > 0) {
+            clearCurrentIfRemoving(0, size);
             items.subList(0, size).clear();
+            count--;
+            notifyItemRangeRemoved(0,size);
         }
-        count--;
-        notifyItemRangeRemoved(0,size);
     }
 
     public void popLast(){
@@ -204,10 +205,49 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (rsize >= 0 && originalSize > rsize + 1) {
             int removeStart = rsize + 1;
             int removeCount = originalSize - removeStart;
+            clearCurrentIfRemoving(removeStart, originalSize);
             items.subList(removeStart, originalSize).clear();
             count--;
             notifyItemRangeRemoved(removeStart, removeCount);
         }
+    }
+
+    private void clearCurrentIfRemoving(int start, int endExclusive) {
+        if(current == null || items == null)
+            return;
+        int end = Math.min(endExclusive, items.size());
+        for(int i = Math.max(0, start); i < end; i++) {
+            if(items.get(i) == current) {
+                clearCurrentPage();
+                return;
+            }
+        }
+    }
+
+    private void clearCurrentPage() {
+        current = null;
+        currentMangaId = -1;
+        needUpdate = true;
+    }
+
+    private boolean containsCurrentPage() {
+        if(current == null || items == null)
+            return false;
+        for(Object item : items) {
+            if(item == current)
+                return true;
+        }
+        return false;
+    }
+
+    private PageItem firstLoadedPage() {
+        if(items == null)
+            return null;
+        for(Object item : items) {
+            if(item instanceof PageItem)
+                return (PageItem)item;
+        }
+        return null;
     }
 
     // data is passed into the constructor
@@ -254,6 +294,8 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     public void removeAll(){
         int size = items.size();
         items.clear();
+        clearCurrentPage();
+        count = 0;
         notifyItemRangeRemoved(0, size);
     }
 
@@ -446,6 +488,10 @@ public class StripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     }
 
     public PageItem getCurrentVisiblePage(){
+        if(containsCurrentPage())
+            return current;
+        clearCurrentPage();
+        current = firstLoadedPage();
         return current;
     }
 

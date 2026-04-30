@@ -751,7 +751,7 @@ public class ViewerActivity extends AppCompatActivity {
     }
 
     private void runPendingPreviousJump() {
-        if(strip == null || pendingPreviousJumpPosition == RecyclerView.NO_POSITION)
+        if(strip == null || pendingPreviousJumpManga == null || pendingPreviousJumpPosition == RecyclerView.NO_POSITION)
             return;
         Manga target = pendingPreviousJumpManga;
         pendingPreviousJumpManga = null;
@@ -895,6 +895,8 @@ public class ViewerActivity extends AppCompatActivity {
             if(stripAdapter != null && !isFinishing()) {
                 if(!stripAdapter.hasMangaLoaded(target))
                     stripAdapter.appendManga(target);
+                if(!stripAdapter.hasMangaLoaded(target))
+                    return;
                 if(afterAppend != null)
                     afterAppend.run();
             }
@@ -908,6 +910,8 @@ public class ViewerActivity extends AppCompatActivity {
             if(stripAdapter != null && !isFinishing()) {
                 if(!stripAdapter.hasMangaLoaded(target))
                     stripAdapter.insertManga(target);
+                if(!stripAdapter.hasMangaLoaded(target))
+                    return;
                 if(afterInsert != null)
                     afterInsert.run();
             }
