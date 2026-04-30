@@ -40,6 +40,7 @@ import androidx.documentfile.provider.DocumentFile;
 
 public class Manga {
     private static final long PAGE_CACHE_TTL_MS = 60 * 1000L;
+    private static final int MAX_TIMEOUT_RETRIES = 2;
 
     int baseMode = base_comic;
     int titleId = -1;
@@ -100,21 +101,25 @@ public class Manga {
         comments = new ArrayList<>();
         bcomments = new ArrayList<>();
         int tries = 0;
+        int timeoutRetries = 0;
 
         while (imgs.size() == 0 && tries < 2) {
             Response r = client.mget(  baseModeStr(baseMode) + '/' + id, false, cookies);
             try {
+                if(r == null)
+                    break;
                 if (r.code() == 302 && r.header("location").contains("captcha.php")) {
+                    r.close();
                     return LOAD_CAPTCHA;
                 }
-                String body = r.body().string();
-                r.close();
+                String body = CustomHttpClient.readBody(r);
+                r = null;
                 if (body.contains("Connect Error: Connection timed out")) {
-                    //adblock : try again
-                    r.close();
-                    tries = 0;
+                    if(++timeoutRetries > MAX_TIMEOUT_RETRIES)
+                        break;
                     continue;
                 }
+                timeoutRetries = 0;
 
                 Document d = Jsoup.parse(body);
 

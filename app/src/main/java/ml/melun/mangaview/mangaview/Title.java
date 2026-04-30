@@ -32,6 +32,7 @@ public class Title extends MTitle {
     public static final int LOAD_OK = 0;
     public static final int LOAD_CAPTCHA = 1;
     private static final long PAGE_CACHE_TTL_MS = 2 * 60 * 1000L;
+    private static final int MAX_TIMEOUT_RETRIES = 2;
 
 
     public Title(String n, String t, String a, List<String> tg, String r, int id, int baseMode) {
@@ -72,99 +73,101 @@ public class Title extends MTitle {
         if(isWebtoonWolfSource())
             return fetchWolfEps(client);
 
-        try {
-            Response r = client.mget('/'+baseModeStr(baseMode)+'/'+ id);
-            //웹툰의 경우 캡차 있을 수 있음.
-            if(r.code() == 302 && r.header("location").contains("captcha.php")){
-                return LOAD_CAPTCHA;
-            }
-            String body = r.body().string();
-            if(body.contains("Connect Error: Connection timed out")){
-                //adblock : try again
-                r.close();
-                fetchEps(client);
-                return LOAD_OK;
-            }
-            Document d = Jsoup.parse(body);
-            Element header = d.selectFirst("div.view-title");
-
-            //extra info
-            try{
-                Element infoTable = d.selectFirst("table.table");
-                //recommend
-                rc = Integer.parseInt(infoTable.selectFirst("button.btn-red").selectFirst("b").ownText());
-                //bookmark
-                Element bookmark = infoTable.selectFirst("a#webtoon_bookmark");
-                if(bookmark != null) {
-                    //logged in
-                    bookmarked = bookmark.hasClass("btn-orangered");
-                    bookmarkLink = bookmark.attr("href");
-                }else{
-                    //not logged in
-                    bookmarked = false;
-                    bookmarkLink = "";
+        for(int attempt = 0; attempt <= MAX_TIMEOUT_RETRIES; attempt++) {
+            try {
+                Response r = client.mget('/'+baseModeStr(baseMode)+'/'+ id);
+                if(r == null)
+                    return LOAD_OK;
+                //웹툰의 경우 캡차 있을 수 있음.
+                if(r.code() == 302 && r.header("location").contains("captcha.php")){
+                    r.close();
+                    return LOAD_CAPTCHA;
                 }
-            }catch (Exception e){
-                e.printStackTrace();
-            }
+                String body = CustomHttpClient.readBody(r);
+                if(body.contains("Connect Error: Connection timed out"))
+                    continue;
+                Document d = Jsoup.parse(body);
+                Element header = d.selectFirst("div.view-title");
 
-            //thumb
-            try {
-                thumb = header.selectFirst("div.view-img").selectFirst("img").attr("src");
-            }catch (Exception e){}
-
-            Elements infos = header.select("div.view-content");
-            //title
-            try {
-                name = infos.get(1).selectFirst("b").ownText();
-            }catch (Exception e){}
-            tags = new ArrayList<>();
-
-            for(int i=1; i<infos.size(); i++){
-                Element e = infos.get(i);
-                try {
-                    String type = e.selectFirst("strong").ownText();
-                    switch (type) {
-                        case "작가":
-                            author = e.selectFirst("a").ownText();
-                            break;
-                        case "분류":
-                            for (Element t : e.select("a"))
-                                tags.add(t.ownText());
-                            break;
-                        case "발행구분":
-                            release = e.selectFirst("a").ownText();
-                            break;
+                //extra info
+                try{
+                    Element infoTable = d.selectFirst("table.table");
+                    //recommend
+                    rc = Integer.parseInt(infoTable.selectFirst("button.btn-red").selectFirst("b").ownText());
+                    //bookmark
+                    Element bookmark = infoTable.selectFirst("a#webtoon_bookmark");
+                    if(bookmark != null) {
+                        //logged in
+                        bookmarked = bookmark.hasClass("btn-orangered");
+                        bookmarkLink = bookmark.attr("href");
+                    }else{
+                        //not logged in
+                        bookmarked = false;
+                        bookmarkLink = "";
                     }
-
-                }catch (Exception e2){continue;}
-            }
-
-            //eps
-            String title, date;
-            Manga tmp;
-            int id;
-            eps = new ArrayList<>();
-            Set<Integer> seenEpisodeIds = new HashSet<>();
-            try{
-                for(Element e : d.selectFirst("ul.list-body").select("li.list-item")) {
-                    Element titlee = e.selectFirst("a.item-subject");
-                    id = getNumberFromString(titlee.attr("href").split(baseModeStr(baseMode)+'/')[1]);
-                    if(!seenEpisodeIds.add(id)) continue;
-
-                    title = titlee.ownText();
-
-                    Elements infoe = e.selectFirst("div.item-details").select("span");
-                    date = infoe.get(0).ownText();
-                    //has view-count, thumb-count and other extra info, implement later
-                    tmp = new Manga(id, title, date, baseMode);
-                    tmp.setMode(0);
-                    eps.add(tmp);
+                }catch (Exception e){
+                    e.printStackTrace();
                 }
-            }catch (Exception e){e.printStackTrace();}
-            r.close();
-        }catch(Exception e) {
-            e.printStackTrace();
+
+                //thumb
+                try {
+                    thumb = header.selectFirst("div.view-img").selectFirst("img").attr("src");
+                }catch (Exception e){}
+
+                Elements infos = header.select("div.view-content");
+                //title
+                try {
+                    name = infos.get(1).selectFirst("b").ownText();
+                }catch (Exception e){}
+                tags = new ArrayList<>();
+
+                for(int i=1; i<infos.size(); i++){
+                    Element e = infos.get(i);
+                    try {
+                        String type = e.selectFirst("strong").ownText();
+                        switch (type) {
+                            case "작가":
+                                author = e.selectFirst("a").ownText();
+                                break;
+                            case "분류":
+                                for (Element t : e.select("a"))
+                                    tags.add(t.ownText());
+                                break;
+                            case "발행구분":
+                                release = e.selectFirst("a").ownText();
+                                break;
+                        }
+
+                    }catch (Exception e2){continue;}
+                }
+
+                //eps
+                String title, date;
+                Manga tmp;
+                int id;
+                eps = new ArrayList<>();
+                Set<Integer> seenEpisodeIds = new HashSet<>();
+                try{
+                    for(Element e : d.selectFirst("ul.list-body").select("li.list-item")) {
+                        Element titlee = e.selectFirst("a.item-subject");
+                        id = getNumberFromString(titlee.attr("href").split(baseModeStr(baseMode)+'/')[1]);
+                        if(!seenEpisodeIds.add(id)) continue;
+
+                        title = titlee.ownText();
+
+                        Elements infoe = e.selectFirst("div.item-details").select("span");
+                        date = infoe.get(0).ownText();
+                        //has view-count, thumb-count and other extra info, implement later
+                        tmp = new Manga(id, title, date, baseMode);
+                        tmp.setMode(0);
+                        eps.add(tmp);
+                    }
+                }catch (Exception e){e.printStackTrace();}
+                break;
+            }catch(Exception e) {
+                e.printStackTrace();
+                break;
+            }
         }
         return LOAD_OK;
     }
