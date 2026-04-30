@@ -432,10 +432,9 @@ public class ViewerActivity2 extends AppCompatActivity {
                             }
                             @Override
                             public void onLoadFailed(@Nullable Drawable errorDrawable) {
-                                if(imgs.size()>0) {
-                                    viewerBookmark--;
-                                    nextPage();
-                                }
+                                viewerBookmark = Math.max(0, viewerBookmark - 1);
+                                frame.setImageResource(R.drawable.placeholder);
+                                updatePageIndex();
                             }
                         });
 
@@ -519,9 +518,7 @@ public class ViewerActivity2 extends AppCompatActivity {
                                 }
                                 @Override
                                 public void onLoadFailed(@Nullable Drawable errorDrawable) {
-                                    if(imgs.size()>0) {
-                                        refreshImage();
-                                    }
+                                    frame.setImageResource(R.drawable.placeholder);
                                 }
                             });
                 }catch(Exception e) {
@@ -579,10 +576,9 @@ public class ViewerActivity2 extends AppCompatActivity {
 
                             @Override
                             public void onLoadFailed(@Nullable Drawable errorDrawable) {
-                                if(imgs.size()>0) {
-                                    viewerBookmark++;
-                                    prevPage();
-                                }
+                                viewerBookmark = Math.min(imgs.size() - 1, viewerBookmark + 1);
+                                frame.setImageResource(R.drawable.placeholder);
+                                updatePageIndex();
                             }
                         });
             }catch (Exception e){
@@ -679,9 +675,7 @@ public class ViewerActivity2 extends AppCompatActivity {
                         }
                         @Override
                         public void onLoadFailed(@Nullable Drawable errorDrawable) {
-                            if(imgs.size()>0) {
-                                refreshImage();
-                            }
+                            frame.setImageResource(R.drawable.placeholder);
                         }
                     });
         }catch(Exception e) {
@@ -699,9 +693,6 @@ public class ViewerActivity2 extends AppCompatActivity {
                     .addListener(new RequestListener<Bitmap>() {
                         @Override
                         public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Bitmap> target, boolean isFirstResource) {
-                            if (imgs.size() > 0) {
-                                preload();
-                            }
                             return false;
                         }
 

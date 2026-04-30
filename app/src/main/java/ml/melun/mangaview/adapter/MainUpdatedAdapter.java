@@ -130,8 +130,13 @@ public class MainUpdatedAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             title.setSelected(true);
             card = itemView.findViewById(R.id.updatedCard);
             card.setOnClickListener(v -> {
+                if(monclick == null)
+                    return;
                 if(loaded){
-                    monclick.onclick(mData.get(getAdapterPosition()));
+                    int position = getAdapterPosition();
+                    if(position == RecyclerView.NO_POSITION || position >= mData.size())
+                        return;
+                    monclick.onclick(mData.get(position));
                 }else
                     monclick.refresh();
             });

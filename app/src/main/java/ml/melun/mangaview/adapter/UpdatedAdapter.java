@@ -121,8 +121,18 @@ public class UpdatedAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 card.setBackgroundColor(ContextCompat.getColor(context, R.color.colorDarkBackground));
                 viewEps.setBackgroundColor(ContextCompat.getColor(context, R.color.resumeDark));
             }
-            card.setOnClickListener(v -> olisten.onClick(mData.get(getAdapterPosition())));
-            viewEps.setOnClickListener(v -> olisten.onEpsClick(mData.get(getAdapterPosition()).getTitle()));
+            card.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if(position == RecyclerView.NO_POSITION || olisten == null)
+                    return;
+                olisten.onClick(mData.get(position));
+            });
+            viewEps.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if(position == RecyclerView.NO_POSITION || olisten == null)
+                    return;
+                olisten.onEpsClick(mData.get(position).getTitle());
+            });
         }
     }
 

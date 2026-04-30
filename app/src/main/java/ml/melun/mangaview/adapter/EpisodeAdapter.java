@@ -161,17 +161,19 @@ public class EpisodeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             episode = itemView.findViewById(R.id.episode);
             date = itemView.findViewById(R.id.date);
             itemView.setOnClickListener(v -> {
-
-                Manga m = mData.get(getAdapterPosition()-1);
+                int position = getAdapterPosition();
+                if(position == RecyclerView.NO_POSITION || position == 0 || mClickListener == null)
+                    return;
+                Manga m = mData.get(position - 1);
                 if(m.getId()>-1) {
                     if (bookmark != -1) {
                         int pre = bookmark;
                         notifyItemChanged(pre);
                     }
-                    bookmark = getAdapterPosition();
+                    bookmark = position;
                     notifyItemChanged(bookmark);
                 }
-                mClickListener.onItemClick(getAdapterPosition()-1, m);
+                mClickListener.onItemClick(position - 1, m);
             });
         }
     }
@@ -204,9 +206,15 @@ public class EpisodeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             h_recommend_c = itemView.findViewById(R.id.recommendText);
 
 
-            h_star.setOnClickListener(v -> mClickListener.onStarClick());
-            h_first.setOnClickListener(v -> mClickListener.onFirstClick());
-            h_author.setOnClickListener(v -> mClickListener.onAuthorClick());
+            h_star.setOnClickListener(v -> {
+                if(mClickListener != null) mClickListener.onStarClick();
+            });
+            h_first.setOnClickListener(v -> {
+                if(mClickListener != null) mClickListener.onFirstClick();
+            });
+            h_author.setOnClickListener(v -> {
+                if(mClickListener != null) mClickListener.onAuthorClick();
+            });
             if(ta!=null) {
                 h_tags.setLayoutManager(lm);
                 h_tags.setAdapter(ta);

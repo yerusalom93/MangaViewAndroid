@@ -145,7 +145,12 @@ public class MainTagAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             }
 
 
-            card.setOnClickListener(v -> mClickListener.onClick(getAdapterPosition(), tags.get(getAdapterPosition())));
+            card.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if(position == RecyclerView.NO_POSITION || mClickListener == null)
+                    return;
+                mClickListener.onClick(position, tags.get(position));
+            });
         }
     }
     public String getSelectedValues(){

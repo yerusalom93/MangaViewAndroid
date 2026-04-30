@@ -306,7 +306,10 @@ public class MainAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 card.setCardBackgroundColor(ContextCompat.getColor(mainContext, R.color.colorBackground));
 
             card.setOnClickListener(v -> {
-                Tag t = (Tag) data.get(getAdapterPosition());
+                int position = getAdapterPosition();
+                if(position == RecyclerView.NO_POSITION || mainClickListener == null)
+                    return;
+                Tag t = (Tag) data.get(position);
                 if(t instanceof NameTag) mainClickListener.clickedName(t.tag);
                 else if(t instanceof GenreTag) mainClickListener.clickedGenre(t.tag);
                 else if(t instanceof ReleaseTag) mainClickListener.clickedRelease(t.tag);

@@ -149,7 +149,12 @@ public class SelectEpisodeAdapter extends RecyclerView.Adapter<RecyclerView.View
                 date.setTextColor(Color.BLACK);
                 episode.setTextColor(Color.BLACK);
             }
-            itemView.setOnClickListener(v -> mClickListener.onItemClick(v,getAdapterPosition()));
+            itemView.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if(position == RecyclerView.NO_POSITION || mClickListener == null)
+                    return;
+                mClickListener.onItemClick(v, position);
+            });
         }
     }
     public void setClickListener(ItemClickListener itemClickListener) {

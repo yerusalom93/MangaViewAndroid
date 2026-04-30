@@ -247,12 +247,25 @@ public class TitleAdapter extends RecyclerView.Adapter<TitleAdapter.ViewHolder> 
                 card.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.colorDarkBackground));
                 resume.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.resumeDark));
             }
-            card.setOnClickListener(v -> mClickListener.onItemClick(getAdapterPosition()));
+            card.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if(position == RecyclerView.NO_POSITION || mClickListener == null)
+                    return;
+                mClickListener.onItemClick(position);
+            });
             card.setOnLongClickListener(v -> {
-                mClickListener.onLongClick(v, getAdapterPosition());
+                int position = getAdapterPosition();
+                if(position == RecyclerView.NO_POSITION || mClickListener == null)
+                    return false;
+                mClickListener.onLongClick(v, position);
                 return true;
             });
-            resume.setOnClickListener(v -> mClickListener.onResumeClick(getAdapterPosition(), p.getBookmark(mDataFiltered.get(getAdapterPosition()))));
+            resume.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if(position == RecyclerView.NO_POSITION || mClickListener == null)
+                    return;
+                mClickListener.onResumeClick(position, p.getBookmark(mDataFiltered.get(position)));
+            });
 
 
         }
