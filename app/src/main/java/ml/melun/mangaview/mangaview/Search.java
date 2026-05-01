@@ -52,7 +52,8 @@ public class Search {
                 return fetchWebtoon(client);
             if(baseMode == base_comic)
                 return fetchComic(client);
-            try {
+            for(int attempt = 0; attempt <= MAX_TIMEOUT_RETRIES; attempt++) {
+                try {
                 String searchUrl = "";
                 switch(mode){
                     case 0:
@@ -77,10 +78,8 @@ public class Search {
                 String body = CustomHttpClient.readBody(response);
                 if(body.contains("Connect Error: Connection timed out")){
                     page--;
-                    if(timeoutRetries++ < MAX_TIMEOUT_RETRIES)
-                        return fetch(client);
-                    timeoutRetries = 0;
-                    return 1;
+                    timeoutRetries = attempt + 1;
+                    continue;
                 }
                 Document d = Jsoup.parse(body);
                 d.outputSettings().charset(StandardCharsets.UTF_8);
@@ -101,18 +100,26 @@ public class Search {
                 for(Element e : titles) {
                     try {
                         Element infos = e.selectFirst("div.img-item");
+                        if(infos == null)
+                            continue;
                         Element infos2 = infos.selectFirst("div.in-lable");
+                        Element label = infos2 != null ? infos2.selectFirst("span") : null;
+                        Element img = infos.selectFirst("img");
+                        if(infos2 == null || label == null || img == null)
+                            continue;
 
                         id = Integer.parseInt(infos2.attr("rel"));
-                        title = infos2.selectFirst("span").ownText();
-                        thumb = infos.selectFirst("img").attr("src");
+                        title = label.ownText();
+                        thumb = img.attr("src");
 
                         Element ae = e.selectFirst("div.list-artist");
-                        if (ae != null) author = ae.selectFirst("a").ownText();
+                        Element authorLink = ae != null ? ae.selectFirst("a") : null;
+                        if (authorLink != null) author = authorLink.ownText();
                         else author = "";
 
                         Element re = e.selectFirst("div.list-publish");
-                        if (re != null) release = re.selectFirst("a").ownText();
+                        Element releaseLink = re != null ? re.selectFirst("a") : null;
+                        if (releaseLink != null) release = releaseLink.ownText();
                         else release = "";
 
                         result.add(new Title(title, thumb, author, null, release, id, baseMode));
@@ -126,13 +133,17 @@ public class Search {
                 if(result.size()==0)
                     page--;
                 timeoutRetries = 0;
+                return 0;
 
-            } catch (Exception e) {
-                page--;
-                timeoutRetries = 0;
-                e.printStackTrace();
-                return 1;
+                } catch (Exception e) {
+                    page--;
+                    timeoutRetries = 0;
+                    e.printStackTrace();
+                    return 1;
+                }
             }
+            timeoutRetries = 0;
+            return 1;
         }
         return 0;
     }

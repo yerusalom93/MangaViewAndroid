@@ -239,10 +239,10 @@ public class Title extends MTitle {
     public int getBookmark(){
         return bookmark;
     }
-    public int getEpsCount(){ return eps.size();}
+    public int getEpsCount(){ return eps == null ? 0 : eps.size();}
 
     public Boolean isNew() throws Exception{
-        if(eps!=null){
+        if(eps!=null && eps.size() > 0 && eps.get(0) != null && eps.get(0).getName() != null){
             return eps.get(0).getName().split(" ")[0].contains("NEW");
         }else{
             throw new Exception("not loaded");

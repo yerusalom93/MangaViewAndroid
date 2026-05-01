@@ -98,6 +98,8 @@ public class MainAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     @Override
     public long getItemId(int position) {
+        if(data == null || position < 0 || position >= data.size())
+            return -1;
         if(data.get(position) == null) return -1;
         return data.get(position).hashCode();
     }
@@ -105,6 +107,8 @@ public class MainAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     @Override
     public int getItemViewType(int position) {
+        if(data == null || position < 0 || position >= data.size())
+            return UPDATED;
         Object o = data.get(position);
         if(o == null)
             return UPDATED;
@@ -146,6 +150,8 @@ public class MainAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        if(data == null || position < 0 || position >= data.size())
+            return;
         int t = getItemViewType(position);
         switch (t){
             case TITLE:
@@ -415,7 +421,8 @@ public class MainAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
             int i = data.indexOf(weekh);
             if(i>-1) {
-                if (u.getWeeklyRanking().size() == 0 && !(data.get(i+1) instanceof NoResultManga)){
+                boolean alreadyHasNoResult = i + 1 < data.size() && data.get(i + 1) instanceof NoResultManga;
+                if (u.getWeeklyRanking().size() == 0 && !alreadyHasNoResult){
                     data.add(++i, new NoResultManga());
                     notifyItemInserted(i);
                 }

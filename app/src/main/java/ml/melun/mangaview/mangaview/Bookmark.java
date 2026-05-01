@@ -17,6 +17,7 @@ public class Bookmark {
     public int fetch(CustomHttpClient client){
         result = new ArrayList<>();
         //todo implement this
+        last = true;
         return 0;
     }
 

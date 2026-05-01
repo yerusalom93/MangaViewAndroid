@@ -101,26 +101,25 @@ public class MainPageWebtoon {
     }
 
     public Ranking<Title> parseWolfTitle(CustomHttpClient client, String title, String path, int baseMode){
-        Ranking<Title> ranking = new Ranking<>(title);
-        boolean retried = false;
-        try{
-            CustomHttpClient.PageResponse page = client.mgetCachedPage(path, PAGE_CACHE_TTL_MS);
-            Document d = Jsoup.parse(page.body);
-            for(Title webtoon : parseWolfTitles(d, baseMode, MAIN_SECTION_LIMIT))
-                ranking.add(webtoon);
-            if(ranking.size() == 0 && !retried && client.resolveWfwfDomainNow()) {
-                retried = true;
+        for(int attempt = 0; attempt < 2; attempt++) {
+            Ranking<Title> ranking = new Ranking<>(title);
+            try{
+                CustomHttpClient.PageResponse page = client.mgetCachedPage(path, PAGE_CACHE_TTL_MS);
+                Document d = Jsoup.parse(page.body);
+                for(Title webtoon : parseWolfTitles(d, baseMode, MAIN_SECTION_LIMIT))
+                    ranking.add(webtoon);
+                if(ranking.size() == 0 && attempt == 0 && client.resolveWfwfDomainNow())
+                    continue;
+            }catch (Exception e){
+                if(e instanceof InterruptedIOException || Thread.currentThread().isInterrupted()) {
+                    Thread.currentThread().interrupt();
+                    return ranking;
+                }
+                e.printStackTrace();
             }
-        }catch (Exception e){
-            if(e instanceof InterruptedIOException || Thread.currentThread().isInterrupted()) {
-                Thread.currentThread().interrupt();
-                return ranking;
-            }
-            e.printStackTrace();
+            return ranking;
         }
-        if(retried)
-            return parseWolfTitle(client, title, path, baseMode);
-        return ranking;
+        return new Ranking<>(title);
     }
 
     private static String[][] buildWebtoonSections() {

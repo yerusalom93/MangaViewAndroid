@@ -36,7 +36,7 @@ public class CommentsAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        return data.size();
+        return data == null ? 0 : data.size();
     }
 
     @Override
@@ -44,6 +44,8 @@ public class CommentsAdapter extends BaseAdapter {
         if(convertView==null){
             convertView = inflater.inflate(R.layout.item_comment,parent,false);
         }
+        if(data == null || position < 0 || position >= data.size())
+            return convertView;
         Comment c = data.get(position);
         ConstraintLayout layout = convertView.findViewById(R.id.comment_layout);
         ImageView icon = convertView.findViewById(R.id.comment_icon);
@@ -67,6 +69,8 @@ public class CommentsAdapter extends BaseAdapter {
 
     @Override
     public Comment getItem(int position) {
+        if(data == null || position < 0 || position >= data.size())
+            return null;
         return data.get(position);
     }
 

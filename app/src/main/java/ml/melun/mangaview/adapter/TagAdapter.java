@@ -44,13 +44,15 @@ public class TagAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>{
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        if(tags == null || position < 0 || position >= tags.size())
+            return;
         tagHolder h = (tagHolder) holder;
         h.tag.setText(tags.get(position));
     }
 
     @Override
     public int getItemCount() {
-        return tags.size();
+        return tags == null ? 0 : tags.size();
     }
 
     public void setClickListener(tagOnclick t){
@@ -66,7 +68,7 @@ public class TagAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>{
             tag = itemView.findViewById(R.id.tag);
             card.setOnClickListener(v -> {
                 int position = getAdapterPosition();
-                if(position == RecyclerView.NO_POSITION || mClickListener == null)
+                if(position == RecyclerView.NO_POSITION || mClickListener == null || tags == null || position >= tags.size())
                     return;
                 mClickListener.onClick(tags.get(position));
             });

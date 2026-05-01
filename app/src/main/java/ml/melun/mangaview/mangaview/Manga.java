@@ -259,7 +259,8 @@ public class Manga {
         comments = new ArrayList<>();
         bcomments = new ArrayList<>();
 
-        try {
+        for(int attempt = 0; attempt < 2; attempt++) {
+            try {
             int titleId = this.titleId;
             if(titleId <= 0 && title != null)
                 titleId = title.getId();
@@ -299,10 +300,16 @@ public class Manga {
                 if(prev != null)
                     eps.add(prev);
             }
-            if(imgs.size() == 0 && client.resolveWfwfDomainNow())
-                return fetchWolf(client, viewPath, epPath);
-        } catch (Exception e) {
-            e.printStackTrace();
+            if(imgs.size() == 0 && attempt == 0 && client.resolveWfwfDomainNow()) {
+                imgs.clear();
+                eps.clear();
+                continue;
+            }
+            break;
+            } catch (Exception e) {
+                e.printStackTrace();
+                break;
+            }
         }
         return LOAD_OK;
     }
